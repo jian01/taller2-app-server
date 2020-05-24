@@ -1,0 +1,7 @@
+.idea/*
+.python-version
+*__pycache__*
+htmlcov*
+.coverage
+*.env
+*.pem

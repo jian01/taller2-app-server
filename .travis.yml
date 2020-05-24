@@ -1,0 +1,13 @@
+language: python
+python:
+  - 3.7
+before_install:
+  - python --version
+  - pip install -r requirements.txt
+  - pip install -r requirements-travis.txt
+  - sudo apt-get update
+  - sudo apt-get install postgresql-server-dev-10 postgresql-10
+script: pytest test
+after_success:
+  - pytest --cov=. test/
+  - coveralls
