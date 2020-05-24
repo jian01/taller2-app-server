@@ -1,8 +1,10 @@
 Master:
-Travis pendiente
+[![Build Status](https://travis-ci.com/jian01/taller2-app-server.svg?token=tFcmLjoZ6PFesBqLEXNZ&branch=master)](https://travis-ci.com/jian01/taller2-app-server)
+[![Coverage Status](https://coveralls.io/repos/github/jian01/taller2-app-server/badge.svg?branch=master&t=zyUK6K)](https://coveralls.io/github/jian01/taller2-app-server?branch=master)
 
 Develop:
-Travis pendiente
+[![Build Status](https://travis-ci.com/jian01/taller2-app-server.svg?token=tFcmLjoZ6PFesBqLEXNZ&branch=develop)](https://travis-ci.com/jian01/taller2-app-server)
+[![Coverage Status](https://coveralls.io/repos/github/jian01/taller2-app-server/badge.svg?branch=develop&t=zyUK6K)](https://coveralls.io/github/jian01/taller2-app-server?branch=master)
 
 # Chotuve App Server
 
