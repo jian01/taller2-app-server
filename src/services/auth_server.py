@@ -55,7 +55,7 @@ class AuthServer:
         self.logger.debug("Logging for user with email %s" % email)
         response = requests.post(self.auth_url+USER_LOGIN_ENDPOINT,
                                  json={"email": email,
-                                       "password:": plain_password},
+                                       "password": plain_password},
                                  params={"api_key": self.api_key},
                                  timeout=DEFAULT_TIMEOUT)
         if response.status_code == 403:
@@ -99,7 +99,7 @@ class AuthServer:
             response = requests.post(self.auth_url+USER_ENDPOINT,
                                      json={"email": email,
                                            "fullname": fullname,
-                                           "password:": plain_password,
+                                           "password": plain_password,
                                            "phone_number": phone_number},
                                      params={"api_key": self.api_key},
                                      files={"photo": photo_bytes},
@@ -108,7 +108,7 @@ class AuthServer:
             response = requests.post(self.auth_url+USER_ENDPOINT,
                                      json={"email": email,
                                            "fullname": fullname,
-                                           "password:": plain_password,
+                                           "password": plain_password,
                                            "phone_number": phone_number},
                                      params={"api_key": self.api_key},
                                      timeout=DEFAULT_TIMEOUT)
