@@ -91,7 +91,6 @@ class Controller:
             return messages.ERROR_JSON % messages.WRONG_CREDENTIALS_MESSAGE, 403
         return json.dumps({"login_token": login_token})
 
-    @auth.login_required
     def users_profile_query(self):
         """
         Handles the user recovering

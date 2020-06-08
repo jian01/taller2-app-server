@@ -93,13 +93,6 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123"})
             self.assertEqual(response.status_code, 403)
 
-    def test_profile_query_not_logged_in(self):
-        AuthServer.profile_query = MagicMock(return_value=None)
-        AuthServer.get_logged_email = MagicMock(return_value=None)
-        with self.app.test_client() as c:
-            response = c.get('/user', query_string={"email": "asd@asd.com"})
-            self.assertEqual(response.status_code, 401)
-
     def test_profile_query_ok(self):
         AuthServer.profile_query = MagicMock(return_value=None)
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
