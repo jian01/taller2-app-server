@@ -37,7 +37,7 @@ class AuthServer:
         self.auth_url = os.getenv(auth_server_url_env_name)
         response = requests.post(self.auth_url+NEW_API_KEY_ENDPOINT,
                                  json={"secret": os.getenv(auth_server_secret_env_name),
-                                       "alias:": os.getenv(server_alias_env_name),
+                                       "alias": os.getenv(server_alias_env_name),
                                        "health_endpoint": os.getenv(server_health_endpoint_url_env_name)},
                                  timeout=DEFAULT_TIMEOUT)
         response.raise_for_status()
