@@ -1,0 +1,2 @@
+class NotAnImageException(AttributeError):
+    pass

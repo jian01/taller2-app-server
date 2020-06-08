@@ -25,7 +25,7 @@ def create_application(config_path: Optional[str] = None, return_controller: Opt
     if not config_path:
         config_path = DEFAULT_CONFIG_FILE
     config = load_config(config_path)
-    controller = Controller()
+    controller = Controller(config.auth_server)
     if not return_controller:
         return create_application_with_controller(controller)
     else:
@@ -39,8 +39,12 @@ def create_application_with_controller(controller: Controller):
 
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
-    cors = CORS(app, resources={})
-
     app.add_url_rule('/health', 'api_health', controller.api_health)
+    app.add_url_rule('/user', 'users_register', controller.users_register,
+                     methods=["POST"])
+    app.add_url_rule('/user/login', 'users_login', controller.users_login,
+                     methods=["POST"])
+    app.add_url_rule('/user', 'users_profile_query',
+                     controller.users_profile_query, methods=['GET'])
 
     return app

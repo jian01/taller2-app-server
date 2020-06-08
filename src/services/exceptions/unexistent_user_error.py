@@ -1,0 +1,2 @@
+class UnexistentUserError(AttributeError):
+    pass

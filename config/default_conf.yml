@@ -1,0 +1,5 @@
+auth_server:
+  auth_server_url_env_name: "AUTH_ENDPOINT_URL"
+  auth_server_secret_env_name: "AUTH_SERVER_SECRET"
+  server_alias_env_name: "SERVER_ALIAS"
+  server_health_endpoint_url_env_name: "SERVER_HEALTH_ENDPOINT"

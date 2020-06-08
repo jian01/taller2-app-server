@@ -1,0 +1,2 @@
+class InvalidRegisterFieldError(AttributeError):
+    pass
