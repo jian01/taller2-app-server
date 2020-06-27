@@ -5,6 +5,7 @@ from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenE
 from src.services.exceptions.user_already_registered_error import UserAlreadyRegisteredError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
+from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.model.photo import Photo
 from typing import Optional, NoReturn, Dict
 from functools import lru_cache
@@ -14,6 +15,8 @@ import logging
 NEW_API_KEY_ENDPOINT = "/api_key"
 USER_LOGIN_ENDPOINT = "/user/login"
 USER_ENDPOINT = "/user"
+RECOVERY_EMAIL_SEND_ENDPOINT = "/user/recover_password"
+RECOVER_PASSWORD_ENDPOINT = "/user/new_password"
 
 USER_ALREADY_REGISTERED_MESSAGE = "User with email %s is already registered"
 
@@ -135,4 +138,38 @@ class AuthServer:
         response.raise_for_status()
         return response.json()
 
+    def send_recovery_email(self, email: str) -> NoReturn:
+        """
+        Send a recovery email to the user
 
+        :param email: the email of the user
+        """
+        self.logger.debug("Sending recovery email for user %s" % email)
+        response = requests.post(self.auth_url + RECOVERY_EMAIL_SEND_ENDPOINT,
+                                 json={"email": email},
+                                 params={"api_key": self.api_key},
+                                 timeout=DEFAULT_TIMEOUT)
+        if response.status_code == 404:
+            raise UnexistentUserError
+        response.raise_for_status()
+
+    def recover_password(self, email: str, token: str, new_password: str) -> NoReturn:
+        """
+        Recovers a password with a recovery token
+
+        :param email: the email of the user
+        :param token: the recovery token for that user
+        :param new_password: the new password to ser
+        """
+        self.logger.debug("Recovering password for user %s" % email)
+        response = requests.post(self.auth_url + RECOVER_PASSWORD_ENDPOINT,
+                                 json={"email": email,
+                                       "token": token,
+                                       "new_password": new_password},
+                                 params={"api_key": self.api_key},
+                                 timeout=DEFAULT_TIMEOUT)
+        if response.status_code == 400:
+            raise InvalidRecoveryTokenError
+        if response.status_code == 404:
+            raise UnexistentUserError
+        response.raise_for_status()

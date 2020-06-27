@@ -1,0 +1,2 @@
+class InvalidRecoveryTokenError(AttributeError):
+    pass

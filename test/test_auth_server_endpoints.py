@@ -10,6 +10,7 @@ from src.services.exceptions.user_already_registered_error import UserAlreadyReg
 from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenError
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
+from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 import json
 
 class MockResponse(NamedTuple):
@@ -35,12 +36,16 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.user_login = AuthServer.user_login
         self.profile_query = AuthServer.profile_query
         self.get_logged_email = AuthServer.get_logged_email
+        self.send_recovery_email = AuthServer.send_recovery_email
+        self.recover_password = AuthServer.recover_password
 
     def tearDown(self):
         AuthServer.user_register = self.user_register
         AuthServer.user_login = self.user_login
         AuthServer.profile_query = self.profile_query
         AuthServer.get_logged_email = self.get_logged_email
+        AuthServer.send_recovery_email = self.send_recovery_email
+        AuthServer.recover_password = self.recover_password
 
     def test_register_mandatory_fields(self):
         AuthServer.user_register = MagicMock(return_value=None)
@@ -116,4 +121,57 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.get('/user', query_string={"email": "asd@asd.com"},
                              headers={"Authentication": "Bearer asd"})
             self.assertEqual(response.status_code, 404)
+
+    def test_send_recovery_email_not_json(self):
+        with self.app.test_client() as c:
+            response = c.post('/user/recover_password', data={"email": "giancafferata@hotmail.com"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_send_recovery_email_missing_field(self):
+        with self.app.test_client() as c:
+            response = c.post('/user/recover_password', json={})
+            self.assertEqual(response.status_code, 400)
+
+    def test_send_recovery_email_unexistent_user(self):
+        AuthServer.send_recovery_email = MagicMock(return_value=None, side_effect=UnexistentUserError)
+        with self.app.test_client() as c:
+            response = c.post('/user/recover_password', json={"email": "giancafferata@hotmail.com"})
+            self.assertEqual(response.status_code, 404)
+
+    def test_send_recovery_email_ok(self):
+        AuthServer.send_recovery_email = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.post('/user/recover_password', json={"email": "giancafferata@hotmail.com"})
+            self.assertEqual(response.status_code, 200)
+
+    def test_users_recover_password_not_json(self):
+        with self.app.test_client() as c:
+            response = c.post('/user/new_password', data={"email": "giancafferata@hotmail.com"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_users_recover_password_missing_field(self):
+        with self.app.test_client() as c:
+            response = c.post('/user/new_password', json={})
+            self.assertEqual(response.status_code, 400)
+
+    def test_users_recover_password_unexistent_user(self):
+        AuthServer.recover_password = MagicMock(return_value=None, side_effect=UnexistentUserError)
+        with self.app.test_client() as c:
+            response = c.post('/user/new_password', json={"email": "giancafferata@hotmail.com",
+                                                              "token": "dummy", "new_password": "asd123"})
+            self.assertEqual(response.status_code, 404)
+
+    def test_users_recover_password_invalid_token(self):
+        AuthServer.recover_password = MagicMock(return_value=None, side_effect=InvalidRecoveryTokenError)
+        with self.app.test_client() as c:
+            response = c.post('/user/new_password', json={"email": "giancafferata@hotmail.com",
+                                                              "token": "dummy", "new_password": "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_users_recover_password_ok(self):
+        AuthServer.recover_password = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.post('/user/new_password', json={"email": "giancafferata@hotmail.com",
+                                                              "token": "dummy", "new_password": "asd123"})
+            self.assertEqual(response.status_code, 200)
 
