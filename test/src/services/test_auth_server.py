@@ -11,7 +11,9 @@ from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenE
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
+from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.model.photo import Photo
+from io import BytesIO
 
 class MockResponse(NamedTuple):
     json_dict: Dict
@@ -31,6 +33,7 @@ class TestAuthServer(unittest.TestCase):
         os.environ["SERVER_HEALTH_ENDPOINT"] = "google.com"
         self.post = requests.post
         self.get = requests.get
+        self.put = requests.put
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
         self.auth_server = AuthServer(auth_server_url_env_name="AUTH_ENDPOINT_URL",
                                       auth_server_secret_env_name="AUTH_SERVER_SECRET",
@@ -40,6 +43,7 @@ class TestAuthServer(unittest.TestCase):
     def tearDown(self):
         requests.post = self.post
         requests.get = self.get
+        requests.put = self.put
 
     def test_valid_login(self):
         requests.post = MagicMock(return_value=MockResponse({"login_token": "dummy"}, 200))
@@ -108,4 +112,17 @@ class TestAuthServer(unittest.TestCase):
         requests.get = MagicMock(return_value=MockResponse({"email": "asd@asd.com"}, 200))
         self.assertEqual(self.auth_server.profile_query(email="asd@asd.com"), {"email": "asd@asd.com"})
 
+    def test_profile_update_unauthorized(self):
+        requests.put = MagicMock(return_value=MockResponse({}, 403))
+        with self.assertRaises(UnauthorizedUserError):
+            self.auth_server.profile_update("asd@asd.com", "dummy_token",
+                                            password="asd123")
 
+    def test_profile_update_unexistent_user(self):
+        requests.put = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(UnexistentUserError):
+            self.auth_server.profile_update("asd@asd.com", "dummy_token",
+                                            password="asd123",
+                                            fullname="Gian",
+                                            phone_number="1111",
+                                            photo=BytesIO())

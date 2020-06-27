@@ -46,6 +46,8 @@ def create_application_with_controller(controller: Controller):
                      methods=["POST"])
     app.add_url_rule('/user', 'users_profile_query',
                      controller.users_profile_query, methods=['GET'])
+    app.add_url_rule('/user', 'users_profile_update',
+                     controller.users_profile_update, methods=['PUT'])
     app.add_url_rule('/user/recover_password', 'users_recover_password',
                      controller.users_send_recovery_email, methods=["POST"])
     app.add_url_rule('/user/new_password', 'users_new_password',
