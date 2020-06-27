@@ -11,6 +11,7 @@ from src.services.exceptions.user_already_registered_error import UserAlreadyReg
 from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenError
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
+from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 
 
 auth = HTTPTokenAuth(scheme='Bearer')
@@ -107,3 +108,48 @@ class Controller:
             self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % email_query)
             return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % email_query), 404
         return json.dumps(user_data)
+
+    def users_send_recovery_email(self):
+        """
+        Recovers a user password by sending a recovery token through email
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not RECOVER_PASSWORD_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        try:
+            self.auth_server.send_recovery_email(content["email"])
+        except UnexistentUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % content["email"])
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["email"]), 404
+        return messages.SUCCESS_JSON, 200
+
+    def users_recover_password(self):
+        """
+        Handles the new password setting
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not NEW_PASSWORD_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        try:
+            self.auth_server.recover_password(content["email"], content["token"], content["new_password"])
+        except UnexistentUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % content["email"])
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["email"]), 404
+        except InvalidRecoveryTokenError:
+            self.logger.debug(messages.INVALID_RECOVERY_TOKEN_MESSAGE % content["email"])
+            return messages.ERROR_JSON % (messages.INVALID_RECOVERY_TOKEN_MESSAGE % content["email"]), 400
+        return messages.SUCCESS_JSON, 200

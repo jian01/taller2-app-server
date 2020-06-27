@@ -10,6 +10,7 @@ from src.services.exceptions.user_already_registered_error import UserAlreadyReg
 from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenError
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
+from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.model.photo import Photo
 
 class MockResponse(NamedTuple):
@@ -74,5 +75,37 @@ class TestAuthServer(unittest.TestCase):
         with self.assertRaises(InvalidRegisterFieldError):
             self.auth_server.user_register(email="asd@asd.com", fullname="Jorge", plain_password="asd123",
                                            phone_number="1111", photo=Photo())
+
+    def test_send_recovery_email(self):
+        requests.post = MagicMock(return_value=MockResponse({}, 200))
+        self.auth_server.send_recovery_email(email="asd@asd.com")
+
+    def test_send_recovery_email_unexistent_user(self):
+        requests.post = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(UnexistentUserError):
+            self.auth_server.send_recovery_email(email="asd@asd.com")
+
+    def test_recover_password(self):
+        requests.post = MagicMock(return_value=MockResponse({}, 200))
+        self.auth_server.recover_password(email="asd@asd.com", token="dummy", new_password="asd123")
+
+    def test_recover_password_unexistent_user(self):
+        requests.post = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(UnexistentUserError):
+            self.auth_server.recover_password(email="asd@asd.com", token="dummy", new_password="asd123")
+
+    def test_recover_password_invalid_recovery_token(self):
+        requests.post = MagicMock(return_value=MockResponse({}, 400))
+        with self.assertRaises(InvalidRecoveryTokenError):
+            self.auth_server.recover_password(email="asd@asd.com", token="dummy", new_password="asd123")
+
+    def test_profile_query_unexistant_user(self):
+        requests.get = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(UnexistentUserError):
+            self.auth_server.profile_query(email="asd@asd.com")
+
+    def test_profile_query_ok(self):
+        requests.get = MagicMock(return_value=MockResponse({"email": "asd@asd.com"}, 200))
+        self.assertEqual(self.auth_server.profile_query(email="asd@asd.com"), {"email": "asd@asd.com"})
 
 
