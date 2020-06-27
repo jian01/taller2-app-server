@@ -125,4 +125,4 @@ class TestAuthServer(unittest.TestCase):
                                             password="asd123",
                                             fullname="Gian",
                                             phone_number="1111",
-                                            photo=BytesIO())
+                                            photo=Photo())
