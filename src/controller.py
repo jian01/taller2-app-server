@@ -178,7 +178,7 @@ class Controller:
         password = content["password"] if "password" in content else None
         fullname = content["fullname"] if "fullname" in content else None
         phone_number = content["phone_number"] if "phone_number" in content else None
-        photo = request.files['photo'].stream if 'photo' in request.files else None
+        photo = Photo.from_bytes(request.files['photo'].stream) if 'photo' in request.files else None
         try:
             self.auth_server.profile_update(email=email_query, user_token=token,
                                             password=password, fullname=fullname,
