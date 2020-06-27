@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 from flask import request
 from flask_httpauth import HTTPTokenAuth
 from constants import messages
@@ -12,6 +12,7 @@ from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenE
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
+from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 
 
 auth = HTTPTokenAuth(scheme='Bearer')
@@ -30,14 +31,19 @@ class Controller:
         """
         self.auth_server = auth_server
         @auth.verify_token
-        def verify_token(token) -> Optional[str]:
+        def verify_token(token) -> Optional[Tuple[str, str]]:
             """
             Verifies a token
 
             :param token: the token to verify
-            :return: the corresponding user
+            :return: the corresponding user email and the token used
             """
-            return auth_server.get_logged_email(token)
+            if not token:
+                return
+            try:
+                return auth_server.get_logged_email(token), token
+            except InvalidLoginTokenError:
+                return
 
     def api_health(self):
         """
@@ -92,7 +98,6 @@ class Controller:
             return messages.ERROR_JSON % messages.WRONG_CREDENTIALS_MESSAGE, 403
         return json.dumps({"login_token": login_token})
 
-    @auth.login_required
     def users_profile_query(self):
         """
         Handles the user recovering
@@ -152,4 +157,36 @@ class Controller:
         except InvalidRecoveryTokenError:
             self.logger.debug(messages.INVALID_RECOVERY_TOKEN_MESSAGE % content["email"])
             return messages.ERROR_JSON % (messages.INVALID_RECOVERY_TOKEN_MESSAGE % content["email"]), 400
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def users_profile_update(self):
+        """
+        Handles updating a user's profile
+        :return: a json with a success message on success or an error in another case
+        """
+        email_query = request.args.get('email')
+        if not email_query:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        email_token = auth.current_user()[0]
+        token = auth.current_user()[1]
+        if email_token != email_query:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        content = request.form
+        password = content["password"] if "password" in content else None
+        fullname = content["fullname"] if "fullname" in content else None
+        phone_number = content["phone_number"] if "phone_number" in content else None
+        photo = request.files['photo'].stream if 'photo' in request.files else None
+        try:
+            self.auth_server.profile_update(email=email_query, user_token=token,
+                                            password=password, fullname=fullname,
+                                            phone_number=phone_number,photo=photo)
+        except UnauthorizedUserError:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        except UnexistentUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % email_query)
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % email_query), 404
         return messages.SUCCESS_JSON, 200

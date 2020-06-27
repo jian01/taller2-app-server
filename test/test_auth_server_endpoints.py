@@ -11,6 +11,7 @@ from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenE
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
+from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 import json
 
 class MockResponse(NamedTuple):
@@ -38,6 +39,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.get_logged_email = AuthServer.get_logged_email
         self.send_recovery_email = AuthServer.send_recovery_email
         self.recover_password = AuthServer.recover_password
+        self.profile_update = AuthServer.profile_update
 
     def tearDown(self):
         AuthServer.user_register = self.user_register
@@ -46,6 +48,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
         AuthServer.get_logged_email = self.get_logged_email
         AuthServer.send_recovery_email = self.send_recovery_email
         AuthServer.recover_password = self.recover_password
+        AuthServer.profile_update = self.profile_update
 
     def test_register_mandatory_fields(self):
         AuthServer.user_register = MagicMock(return_value=None)
@@ -98,35 +101,25 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123"})
             self.assertEqual(response.status_code, 403)
 
-    def test_profile_query_not_logged_in(self):
-        AuthServer.profile_query = MagicMock(return_value=None)
-        AuthServer.get_logged_email = MagicMock(return_value=None)
-        with self.app.test_client() as c:
-            response = c.get('/user', query_string={"email": "asd@asd.com"})
-            self.assertEqual(response.status_code, 401)
-
     def test_profile_query_ok(self):
         AuthServer.profile_query = MagicMock(return_value=None)
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         with self.app.test_client() as c:
-            response = c.get('/user', query_string={"email": "asd@asd.com"},
-                             headers={"Authentication": "Bearer asd"})
+            response = c.get('/user', query_string={"email": "asd@asd.com"})
             self.assertEqual(response.status_code, 200)
 
     def test_profile_query_missing_email(self):
         AuthServer.profile_query = MagicMock(return_value=None)
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         with self.app.test_client() as c:
-            response = c.get('/user',
-                             headers={"Authentication": "Bearer asd"})
+            response = c.get('/user')
             self.assertEqual(response.status_code, 400)
 
     def test_profile_query_unexistant_user(self):
         AuthServer.profile_query = MagicMock(return_value=None, side_effect=UnexistentUserError)
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         with self.app.test_client() as c:
-            response = c.get('/user', query_string={"email": "asd@asd.com"},
-                             headers={"Authentication": "Bearer asd"})
+            response = c.get('/user', query_string={"email": "asd@asd.com"})
             self.assertEqual(response.status_code, 404)
 
     def test_send_recovery_email_not_json(self):
@@ -182,3 +175,53 @@ class TestAuthServerEndpoints(unittest.TestCase):
                                                               "token": "dummy", "new_password": "asd123"})
             self.assertEqual(response.status_code, 200)
 
+    def test_user_update_without_authentication(self):
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"email": "caropistillo@gmail.com"}, data='')
+            self.assertEqual(response.status_code, 401)
+
+    def test_user_update_for_missing_fields_error(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"fullname": "Carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_user_update_for_non_existing_user_error(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.profile_update = MagicMock(return_value=None, side_effect=UnexistentUserError)
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"email": "asd@asd.com"},
+                             data={"fullname":"Carolina Pistillo", "phone_number":"11 1111-1111",
+                                "password":"carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 404)
+
+    def test_user_update_for_unauthorized_non_matching_token(self):
+        AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"email": "asd@asd.com"},
+                             data={"fullname":"Carolina Pistillo", "phone_number":"11 1111-1111",
+                                "password":"carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_user_update_for_unauthorized_auth_server(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.profile_update = MagicMock(return_value=None, side_effect=UnauthorizedUserError)
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"email": "asd@asd.com"},
+                             data={"fullname":"Carolina Pistillo", "phone_number":"11 1111-1111",
+                                "password":"carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_user_update_success(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.profile_update = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"email": "asd@asd.com"},
+                             data={"fullname":"Carolina Pistillo", "phone_number":"11 3263-7625",
+                                "password":"carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)

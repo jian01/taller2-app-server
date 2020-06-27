@@ -1,0 +1,2 @@
+class UnauthorizedUserError(AttributeError):
+    pass

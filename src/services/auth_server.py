@@ -6,7 +6,9 @@ from src.services.exceptions.user_already_registered_error import UserAlreadyReg
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
+from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.model.photo import Photo
+from io import BytesIO
 from typing import Optional, NoReturn, Dict
 from functools import lru_cache
 import base64
@@ -173,3 +175,39 @@ class AuthServer:
         if response.status_code == 404:
             raise UnexistentUserError
         response.raise_for_status()
+
+    def profile_update(self, email: str, user_token: str,
+                       password: Optional[str] = None,
+                       fullname: Optional[str] = None, phone_number: Optional[str] = None,
+                       photo: Optional[BytesIO] = None) -> NoReturn:
+        """
+        Updates a user profile
+
+        :param email: the email of the user to be updated
+        :param user_token: the user login token
+        :param password: the password to be updated
+        :param fullname: the fullname to be updated
+        :param phone_number: the phone number to be updated
+        :param photo: the photo bytes to be updated
+        """
+        content = {}
+        if password:
+            content["password"] = password
+        if fullname:
+            content["fullname"] = fullname
+        if phone_number:
+            content["phone_number"] = phone_number
+        if photo:
+            content["file"] = (photo, 'photo')
+        if not content:
+            return
+        response = requests.put(self.auth_url + USER_ENDPOINT, data=content,
+                                query_string={"api_key": self.api_key, "email": email},
+                                timeout=DEFAULT_TIMEOUT,
+                                headers={"Authorization": "Bearer %s" % user_token})
+        if response.status_code == 403:
+            raise UnauthorizedUserError
+        if response.status_code == 404:
+            raise UnexistentUserError
+        response.raise_for_status()
+
