@@ -87,4 +87,46 @@ heroku logs
 
 ## Postgres database
 
---
+Script para el set-up de la base de datos:
+
+```sql
+create schema chotuve;
+
+
+create table chotuve.users
+(
+	email varchar,
+	fullname varchar,
+	phone_number varchar,
+	photo varchar,
+    admin boolean,
+	password varchar
+);
+
+create table chotuve.friend_requests
+(
+    "from" varchar
+        constraint friend_requests_users_email_fk
+            references chotuve.users,
+    "to" varchar
+        constraint friend_requests_users_email_fk_2
+            references chotuve.users,
+    status varchar,
+    timestamp timestamp,
+    constraint friend_requests_pk
+        primary key ("from", "to")
+);
+
+create table chotuve.friends
+(
+	user1 varchar
+		constraint table_name_users_email_fk
+			references chotuve.users,
+	user2 varchar
+		constraint table_name_users_email_fk_2
+			references chotuve.users,
+	constraint table_name_pk
+		unique (user1, user2),
+	check (user1 < user2)
+);
+```
