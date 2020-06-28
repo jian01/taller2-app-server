@@ -1,0 +1,2 @@
+class UnexistentFriendRequest(AttributeError):
+    pass

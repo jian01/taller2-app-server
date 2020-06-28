@@ -15,6 +15,7 @@ from src.services.exceptions.invalid_recovery_token_error import InvalidRecovery
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.services.exceptions.invalid_video_format_error import InvalidVideoFormatError
 from src.database.videos.video_database import VideoDatabase, VideoData
+from src.database.friends.friend_database import FriendDatabase
 from src.services.media_server import MediaServer
 from datetime import datetime
 
@@ -32,13 +33,15 @@ class Controller:
     logger = logging.getLogger(__name__)
     def __init__(self, auth_server: AuthServer,
                  media_server: MediaServer,
-                 video_database: VideoDatabase):
+                 video_database: VideoDatabase,
+                 friend_database: FriendDatabase):
         """
         Here the init should receive all the parameters needed to know how to answer all the queries
         """
         self.auth_server = auth_server
         self.media_server = media_server
         self.video_database = video_database
+        self.friend_database = friend_database
         @auth.verify_token
         def verify_token(token) -> Optional[Tuple[str, str]]:
             """
