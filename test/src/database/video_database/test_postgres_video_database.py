@@ -15,6 +15,10 @@ fake_video_data = VideoData(title="Titulo", description="Descripcion",
                             creation_time=datetime.datetime.now(), visible=True,
                             location="Buenos Aires", file_location="file_location")
 
+fake_video_data2 = VideoData(title="Titulo2", description="Descripcion",
+                             creation_time=datetime.datetime.now()+datetime.timedelta(days=1), visible=True,
+                             location="Buenos Aires", file_location="file_location")
+
 @pytest.fixture(scope="function")
 def video_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "dummy"
@@ -42,3 +46,13 @@ def test_add_video_and_query(monkeypatch, video_postgres_database):
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 1
+    assert videos[0].title == "Titulo"
+
+def test_add_two_videos_and_query(monkeypatch, video_postgres_database):
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data2)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 2
+    assert videos[0].title == "Titulo2"
+    assert videos[1].title == "Titulo"
