@@ -181,6 +181,7 @@ class AuthServer:
         :param phone_number: the phone number to be updated
         :param photo: the photo bytes to be updated
         """
+        self.logger.debug("Updating %s user data" % email)
         content = {}
         if password:
             content["password"] = password

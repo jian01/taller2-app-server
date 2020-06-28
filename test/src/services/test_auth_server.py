@@ -3,7 +3,6 @@ import unittest
 import os
 from unittest.mock import MagicMock
 import requests
-from requests import Response
 from typing import NamedTuple, Dict
 from src.services.exceptions.invalid_credentials_error import InvalidCredentialsError
 from src.services.exceptions.user_already_registered_error import UserAlreadyRegisteredError
@@ -13,7 +12,6 @@ from src.services.exceptions.invalid_register_field_error import InvalidRegister
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.model.photo import Photo
-from io import BytesIO
 
 class MockResponse(NamedTuple):
     json_dict: Dict

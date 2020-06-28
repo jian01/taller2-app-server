@@ -1,0 +1,2 @@
+class InvalidVideoFormatError(AttributeError):
+    pass

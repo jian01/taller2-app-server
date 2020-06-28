@@ -25,7 +25,7 @@ def create_application(config_path: Optional[str] = None, return_controller: Opt
     if not config_path:
         config_path = DEFAULT_CONFIG_FILE
     config = load_config(config_path)
-    controller = Controller(config.auth_server)
+    controller = Controller(config.auth_server,config.media_server,config.video_database)
     if not return_controller:
         return create_application_with_controller(controller)
     else:

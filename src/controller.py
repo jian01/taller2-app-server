@@ -13,6 +13,8 @@ from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
+from src.database.videos.video_database import VideoDatabase, VideoData
+from src.services.media_server import MediaServer
 
 
 auth = HTTPTokenAuth(scheme='Bearer')
@@ -25,11 +27,15 @@ USERS_REGISTER_MANDATORY_FIELDS = {"email", "password", "phone_number", "fullnam
 
 class Controller:
     logger = logging.getLogger(__name__)
-    def __init__(self, auth_server: AuthServer):
+    def __init__(self, auth_server: AuthServer,
+                 media_server: MediaServer,
+                 video_database: VideoDatabase):
         """
         Here the init should receive all the parameters needed to know how to answer all the queries
         """
         self.auth_server = auth_server
+        self.media_server = media_server
+        self.video_database = video_database
         @auth.verify_token
         def verify_token(token) -> Optional[Tuple[str, str]]:
             """
