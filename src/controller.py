@@ -232,7 +232,7 @@ class Controller:
             return messages.ERROR_JSON % messages.INVALID_VIDEO_FORMAT, 400
         video_data = VideoData(title=title, location=location, creation_time=datetime.now(),
                                file_location=file_location, visible=visible, description=description)
-        video_id = self.video_database.add_video(user_email=email_query, video_data=video_data)
-        response_dict = {**{"id": video_id},**video_data._asdict()}
+        self.video_database.add_video(user_email=email_query, video_data=video_data)
+        response_dict = video_data._asdict()
         response_dict["creation_time"] = response_dict["creation_time"].isoformat()
         return json.dumps(response_dict), 200

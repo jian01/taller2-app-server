@@ -98,12 +98,8 @@ class TestAuthServerEndpoints(unittest.TestCase):
                                     "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            id1 = json.loads(response.data)["id"]
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
                                     "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            id2 = json.loads(response.data)["id"]
-            self.assertLess(id1, id2)
-            self.assertTrue(id1 != id2)
