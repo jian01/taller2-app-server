@@ -39,8 +39,9 @@ class TestAuthServer(unittest.TestCase):
                                            video=BytesIO())
 
     def test_upload_video_ok(self):
-        requests.post = MagicMock(return_value=MockResponse({}, 200))
-        self.media_server.upload_video(user_email="asd@asd.com",title="dummy",video=BytesIO())
+        requests.post = MagicMock(return_value=MockResponse({"url": "google.com"}, 200))
+        self.assertEqual(self.media_server.upload_video(user_email="asd@asd.com",title="dummy",video=BytesIO()),
+                         "google.com")
 
     def test_delete_video_unexistent(self):
         requests.delete = MagicMock(return_value=MockResponse({}, 404))

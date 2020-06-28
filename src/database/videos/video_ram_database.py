@@ -26,6 +26,7 @@ class RamVideoDatabase(VideoDatabase):
             self.videos_by_user[user_email] = [(self.current_id, video_data)]
         else:
             self.videos_by_user[user_email].append((self.current_id, video_data))
+        self.current_id += 1
         return self.current_id - 1
 
     def list_user_videos(self, user_email: str) -> List[Tuple[int, VideoData]]:

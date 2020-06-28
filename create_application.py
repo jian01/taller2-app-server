@@ -52,5 +52,7 @@ def create_application_with_controller(controller: Controller):
                      controller.users_send_recovery_email, methods=["POST"])
     app.add_url_rule('/user/new_password', 'users_new_password',
                      controller.users_recover_password, methods=["POST"])
+    app.add_url_rule('/user/video', 'users_upload_video',
+                     controller.users_video_upload, methods=["POST"])
 
     return app

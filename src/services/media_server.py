@@ -27,7 +27,7 @@ class MediaServer:
         # TODO: health-check
         self.logger.info("Connected to media server")
 
-    def upload_video(self, user_email: str, title: str, video: BytesIO) -> NoReturn:
+    def upload_video(self, user_email: str, title: str, video: BytesIO) -> str:
         """
         Uploads a video for a user
 
@@ -37,6 +37,7 @@ class MediaServer:
         :param user_email: the user for which the video is being uploaded
         :param title: the title of the video to upload
         :param video: the video to upload
+        :return: the file url
         """
         self.logger.debug("Uploading video for %s" % user_email)
         r = requests.post(self.media_url + VIDEOS_ENDPOINT,
@@ -46,6 +47,7 @@ class MediaServer:
         if r.status_code == 400:
             raise InvalidVideoFormatError
         r.raise_for_status()
+        return r.json()["url"]
 
     def delete_video(self, user_email: str, title: str) -> NoReturn:
         """
