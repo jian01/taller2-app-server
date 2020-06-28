@@ -25,7 +25,7 @@ def create_application(config_path: Optional[str] = None, return_controller: Opt
     if not config_path:
         config_path = DEFAULT_CONFIG_FILE
     config = load_config(config_path)
-    controller = Controller(config.auth_server)
+    controller = Controller(config.auth_server,config.media_server,config.video_database)
     if not return_controller:
         return create_application_with_controller(controller)
     else:
@@ -52,5 +52,9 @@ def create_application_with_controller(controller: Controller):
                      controller.users_send_recovery_email, methods=["POST"])
     app.add_url_rule('/user/new_password', 'users_new_password',
                      controller.users_recover_password, methods=["POST"])
+    app.add_url_rule('/user/video', 'users_upload_video',
+                     controller.users_video_upload, methods=["POST"])
+    app.add_url_rule('/user/videos', 'users_list_videos',
+                     controller.users_list_videos, methods=["GET"])
 
     return app

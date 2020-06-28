@@ -88,6 +88,12 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.post('/user/login', json={"password": "asd123"})
             self.assertEqual(response.status_code, 400)
 
+    def test_login_unexistent_user(self):
+        AuthServer.user_login = MagicMock(return_value=None, side_effect=UnexistentUserError)
+        with self.app.test_client() as c:
+            response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123"})
+            self.assertEqual(response.status_code, 404)
+
     def test_login_ok(self):
         AuthServer.user_login = MagicMock(return_value="asd123")
         with self.app.test_client() as c:

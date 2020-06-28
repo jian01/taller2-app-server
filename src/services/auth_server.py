@@ -65,6 +65,8 @@ class AuthServer:
                                  timeout=DEFAULT_TIMEOUT)
         if response.status_code == 403:
             raise InvalidCredentialsError
+        if response.status_code == 404:
+            raise UnexistentUserError
         response.raise_for_status()
         return response.json()["login_token"]
 
@@ -100,23 +102,14 @@ class AuthServer:
         photo_bytes = None
         if photo:
             photo_bytes = base64.b64decode(photo.get_base64())
-        if photo_bytes:
-            response = requests.post(self.auth_url+USER_ENDPOINT,
-                                     json={"email": email,
-                                           "fullname": fullname,
-                                           "password": plain_password,
-                                           "phone_number": phone_number},
-                                     params={"api_key": self.api_key},
-                                     files={"photo": photo_bytes},
-                                     timeout=DEFAULT_TIMEOUT)
-        else:
-            response = requests.post(self.auth_url+USER_ENDPOINT,
-                                     json={"email": email,
-                                           "fullname": fullname,
-                                           "password": plain_password,
-                                           "phone_number": phone_number},
-                                     params={"api_key": self.api_key},
-                                     timeout=DEFAULT_TIMEOUT)
+        response = requests.post(self.auth_url+USER_ENDPOINT,
+                                 json={"email": email,
+                                       "fullname": fullname,
+                                       "password": plain_password,
+                                       "phone_number": phone_number},
+                                 params={"api_key": self.api_key},
+                                 files={"photo": photo_bytes} if photo_bytes else {},
+                                 timeout=DEFAULT_TIMEOUT)
         if response.status_code == 400:
             if response.json()["message"] == USER_ALREADY_REGISTERED_MESSAGE % email:
                 raise UserAlreadyRegisteredError
@@ -179,7 +172,7 @@ class AuthServer:
     def profile_update(self, email: str, user_token: str,
                        password: Optional[str] = None,
                        fullname: Optional[str] = None, phone_number: Optional[str] = None,
-                       photo: Optional[BytesIO] = None) -> NoReturn:
+                       photo: Optional[Photo] = None) -> NoReturn:
         """
         Updates a user profile
 
@@ -190,6 +183,7 @@ class AuthServer:
         :param phone_number: the phone number to be updated
         :param photo: the photo bytes to be updated
         """
+        self.logger.debug("Updating %s user data" % email)
         content = {}
         if password:
             content["password"] = password
@@ -197,12 +191,14 @@ class AuthServer:
             content["fullname"] = fullname
         if phone_number:
             content["phone_number"] = phone_number
+        photo_bytes = None
         if photo:
-            content["file"] = (photo, 'photo')
-        if not content:
+            photo_bytes = base64.b64decode(photo.get_base64())
+        if not content and not photo_bytes:
             return
         response = requests.put(self.auth_url + USER_ENDPOINT, data=content,
                                 query_string={"api_key": self.api_key, "email": email},
+                                files={"photo": photo_bytes} if photo_bytes else {},
                                 timeout=DEFAULT_TIMEOUT,
                                 headers={"Authorization": "Bearer %s" % user_token})
         if response.status_code == 403:

@@ -1,5 +1,20 @@
+video_database: PostgresVideoDatabase
+api_key_secret_generator_env_name: API_GENERATOR_SECRET
+
 auth_server:
   auth_server_url_env_name: "AUTH_ENDPOINT_URL"
   auth_server_secret_env_name: "AUTH_SERVER_SECRET"
   server_alias_env_name: "SERVER_ALIAS"
   server_health_endpoint_url_env_name: "SERVER_HEALTH_ENDPOINT"
+
+media_server:
+  media_server_url_env_name: "MEDIA_ENDPOINT_URL"
+
+video_databases:
+  RamVideoDatabase: {}
+  PostgresVideoDatabase:
+    videos_table_name: "chotuve.videos"
+    postgr_host_env_name: "POSTGRES_HOST"
+    postgr_user_env_name: "POSTGRES_USER"
+    postgr_pass_env_name: "POSTGRES_PASSWORD"
+    postgr_database_env_name: "POSTGRES_DATABASE"

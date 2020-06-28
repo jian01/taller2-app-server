@@ -1,0 +1,76 @@
+import psycopg2
+from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
+from src.database.videos.video_database import VideoData, VideoDatabase
+import logging
+import os
+import json
+import requests
+import math
+import datetime
+
+VIDEO_INSERT_QUERY = """
+INSERT INTO {} (user_email, title, creation_time, visible, location, file_location, description)
+VALUES (%s, %s, %s, %s, %s, %s, %s)
+"""
+
+LIST_USER_VIDEOS_QUERY = """
+SELECT title, creation_time, visible, location, file_location, description
+FROM %s
+WHERE user_email = '%s'
+ORDER BY creation_time DESC
+"""
+
+class PostgresVideoDatabase(VideoDatabase):
+    """
+    Postgres & Firebase implementation of Database abstraction
+    """
+    logger = logging.getLogger(__name__)
+    # TODO: avoid sql injection
+    def __init__(self, videos_table_name: str, postgr_host_env_name: str,
+                 postgr_user_env_name: str, postgr_pass_env_name: str, postgr_database_env_name: str):
+
+        self.videos_table_name = videos_table_name
+        self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
+                                     password=os.environ[postgr_pass_env_name],
+                                     database=os.environ[postgr_database_env_name])
+        if self.conn.closed == 0:
+            self.logger.info("Connected to postgres database")
+        else:
+            self.logger.error("Unable to connect to postgres database")
+            raise ConnectionError("Unable to connect to postgres database")
+
+    def add_video(self, user_email: str, video_data: VideoData) -> NoReturn:
+        """
+        Adds a video to the database
+
+        :param user_email: the email of the user owner of the video
+        :param video_data: the video data to upload
+        """
+        cursor = self.conn.cursor()
+        self.logger.debug("Saving video for user with email %s" % user_email)
+
+        cursor.execute(VIDEO_INSERT_QUERY.format(self.videos_table_name),
+                       (user_email, video_data.title, video_data.creation_time.isoformat(),
+                        video_data.visible, video_data.location, video_data.file_location,
+                        video_data.description))
+        self.conn.commit()
+        cursor.close()
+
+    def list_user_videos(self, user_email: str) -> List[VideoData]:
+        """
+        Get all the user videos
+
+        :param user_email: the user's email
+        :return: a list video data
+        """
+        self.logger.debug("Listing videos for user with email %s" % user_email)
+        cursor = self.conn.cursor()
+        cursor.execute(LIST_USER_VIDEOS_QUERY % (self.videos_table_name, user_email))
+        result = cursor.fetchall()
+        # title, creation_time, visible, location, file_location, description
+        result = [VideoData(title=r[0], creation_time=r[1], visible=r[2], location=r[3],
+                            file_location=r[4], description=r[5])
+                  for r in result]
+        cursor.close()
+
+        return result

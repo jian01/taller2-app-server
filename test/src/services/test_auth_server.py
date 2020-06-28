@@ -3,7 +3,6 @@ import unittest
 import os
 from unittest.mock import MagicMock
 import requests
-from requests import Response
 from typing import NamedTuple, Dict
 from src.services.exceptions.invalid_credentials_error import InvalidCredentialsError
 from src.services.exceptions.user_already_registered_error import UserAlreadyRegisteredError
@@ -13,7 +12,6 @@ from src.services.exceptions.invalid_register_field_error import InvalidRegister
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.model.photo import Photo
-from io import BytesIO
 
 class MockResponse(NamedTuple):
     json_dict: Dict
@@ -48,6 +46,11 @@ class TestAuthServer(unittest.TestCase):
     def test_valid_login(self):
         requests.post = MagicMock(return_value=MockResponse({"login_token": "dummy"}, 200))
         self.assertEqual(self.auth_server.user_login("email@email.com", "asd123"), "dummy")
+
+    def test_unexistent_user_login(self):
+        requests.post = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(UnexistentUserError):
+            self.auth_server.user_login("email@email.com", "asd123")
 
     def test_invalid_login(self):
         requests.post = MagicMock(return_value=MockResponse({"login_token": "dummy"}, 403))
@@ -125,4 +128,4 @@ class TestAuthServer(unittest.TestCase):
                                             password="asd123",
                                             fullname="Gian",
                                             phone_number="1111",
-                                            photo=BytesIO())
+                                            photo=Photo())
