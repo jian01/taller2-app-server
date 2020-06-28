@@ -5,5 +5,190 @@ info:
   version: 1.0.0
 servers:
 - url: /
+tags:
+- name: user
+  description: Operations with user
+- name: video
+  description: Operations with user's videos
 paths:
+  /user:
+    get:
+      tags:
+      - user
+      summary: Query users
+      description: Queries all the user information
+      parameters:
+      - name: email
+        in: query
+        description: The user name for login
+        required: true
+        schema:
+          type: string
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        400:
+          description: Missing email
+          content: {}
+        404:
+          description: User not found
+          content: {}
+    put:
+      tags:
+      - user
+      summary: Update users profile
+      description: Updates the data of the user
+      requestBody:
+        description: The user data to be updated
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Invalid or missing fields or the message is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+      x-codegen-request-body-name: body
+    post:
+      tags:
+      - user
+      summary: Create user
+      description: Creates an user
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: User already created, invalid or missing fields or the message
+            is not a json
+          content: {}
+      x-codegen-request-body-name: body
+  /user/login:
+    post:
+      tags:
+      - user
+      summary: Login
+      description: Logins a user
+      requestBody:
+        description: Login with a user
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  login_token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        400:
+          description: Missing fields or not a JSON
+          content: {}
+        403:
+          description: Invalid credentials
+          content: {}
+        404:
+          description: User not found
+          content: {}
+      x-codegen-request-body-name: body
+  /user/recover_password:
+    post:
+      tags:
+      - user
+      summary: Recover password
+      description: Sends an email to the user with the token required to recover the
+        password
+      requestBody:
+        description: Sends an email to the user with the token required to recover
+          the password
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+        404:
+          description: User not found
+          content: {}
+      x-codegen-request-body-name: body
+  /user/new_password:
+    post:
+      tags:
+      - user
+      summary: Set new password
+      description: Sets a new password using a recovery token
+      requestBody:
+        description: Sets a new password using a recovery token
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                token:
+                  type: string
+                new_password:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields, body is not a json or recovery token invalid
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+        404:
+          description: User not found
+          content: {}
+      x-codegen-request-body-name: body
 components:

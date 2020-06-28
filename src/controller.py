@@ -105,6 +105,9 @@ class Controller:
         except InvalidCredentialsError:
             self.logger.debug(messages.WRONG_CREDENTIALS_MESSAGE)
             return messages.ERROR_JSON % messages.WRONG_CREDENTIALS_MESSAGE, 403
+        except UnexistentUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % content["email"])
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["email"]), 404
         return json.dumps({"login_token": login_token})
 
     def users_profile_query(self):

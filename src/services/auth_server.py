@@ -65,6 +65,8 @@ class AuthServer:
                                  timeout=DEFAULT_TIMEOUT)
         if response.status_code == 403:
             raise InvalidCredentialsError
+        if response.status_code == 404:
+            raise UnexistentUserError
         response.raise_for_status()
         return response.json()["login_token"]
 
