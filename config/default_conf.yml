@@ -12,4 +12,9 @@ media_server:
 
 video_databases:
   RamVideoDatabase: {}
-  PostgresVideoDatabase: {}
+  PostgresVideoDatabase:
+    videos_table_name: "chotuve.videos"
+    postgr_host_env_name: "POSTGRES_HOST"
+    postgr_user_env_name: "POSTGRES_USER"
+    postgr_pass_env_name: "POSTGRES_PASSWORD"
+    postgr_database_env_name: "POSTGRES_DATABASE"
