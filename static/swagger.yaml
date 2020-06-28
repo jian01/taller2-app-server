@@ -24,8 +24,6 @@ paths:
         required: true
         schema:
           type: string
-      security:
-        - bearerAuth: []
       responses:
         200:
           description: Successful operation
@@ -191,4 +189,113 @@ paths:
           description: User not found
           content: {}
       x-codegen-request-body-name: body
+  /user/video:
+    post:
+      tags:
+        - video
+      summary: Upload a video
+      description: Uploads a new video
+      parameters:
+        - name: email
+          in: query
+          description: The user name for login
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Video data
+        content:
+          video/*:
+            schema:
+              type: string
+              format: binary
+          application/form:
+            schema:
+              $ref: '#/components/schemas/Video'
+        required: true
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  video:
+                    $ref: '#/components/schemas/Video'
+        400:
+          description: Missing fields or invalid video format
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+      x-codegen-request-body-name: body
+  /user/videos:
+    get:
+      tags:
+        - video
+      summary: Get users videos
+      description: Get users videos
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  video:
+                    $ref: '#/components/schemas/Video'
+        400:
+          description: Missing email
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+      x-codegen-request-body-name: body
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+        fullname:
+          type: string
+        password:
+          type: string
+        phone_number:
+          type: string
+        photo:
+          type: string
+        admin:
+          type: boolean
+      xml:
+        name: User
+    Video:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        visible:
+          type: string
+        location:
+          type: string
+      xml:
+        name: Video
