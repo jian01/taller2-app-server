@@ -204,14 +204,13 @@ class Controller:
     def users_video_upload(self):
         """
         Uploads a video for a user
-        :return: a json with a success message on success or an error in another case
+        :return: a json with the video data or an error in another case
         """
         email_query = request.args.get('email')
         if not email_query:
             self.logger.debug(messages.MISSING_FIELDS_ERROR)
             return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
         email_token = auth.current_user()[0]
-        token = auth.current_user()[1]
         if email_token != email_query:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
@@ -236,3 +235,22 @@ class Controller:
         response_dict = video_data._asdict()
         response_dict["creation_time"] = response_dict["creation_time"].isoformat()
         return json.dumps(response_dict), 200
+
+    @auth.login_required
+    def users_list_videos(self):
+        """
+        Uploads a video for a user
+        :return: a json with the videos data or an error in another case
+        """
+        email_query = request.args.get('email')
+        if not email_query:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        email_token = auth.current_user()[0]
+        # TODO: check friendship for private videos?
+        user_videos = self.video_database.list_user_videos(email_query)
+        user_videos = [video_data._asdict() for video_data in user_videos]
+        user_videos = [video_data for video_data in user_videos if video_data["visible"]]
+        for i in range(len(user_videos)):
+            user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
+        return json.dumps(user_videos), 200

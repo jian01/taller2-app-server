@@ -54,5 +54,7 @@ def create_application_with_controller(controller: Controller):
                      controller.users_recover_password, methods=["POST"])
     app.add_url_rule('/user/video', 'users_upload_video',
                      controller.users_video_upload, methods=["POST"])
+    app.add_url_rule('/user/videos', 'users_list_videos',
+                     controller.users_list_videos, methods=["GET"])
 
     return app

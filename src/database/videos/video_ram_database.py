@@ -32,4 +32,4 @@ class RamVideoDatabase(VideoDatabase):
         :param user_email: the user's email
         :return: a list video data
         """
-        return self.videos_by_user[user_email]
+        return list(reversed(self.videos_by_user[user_email]))

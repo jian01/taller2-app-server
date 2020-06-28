@@ -9,6 +9,7 @@ import requests
 from typing import NamedTuple, Dict
 from io import BytesIO
 import json
+import time
 
 class MockResponse(NamedTuple):
     json_dict: Dict
@@ -103,3 +104,51 @@ class TestAuthServerEndpoints(unittest.TestCase):
                                     "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
+
+    def test_user_list_videos_without_authentication(self):
+        with self.app.test_client() as c:
+            response = c.get('/user/videos', query_string={"email": "asd@asd.com"})
+            self.assertEqual(response.status_code, 401)
+
+    def test_user_upload_two_videos_and_list(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            time.sleep(0.5)
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo 2", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(json.loads(response.data)), 2)
+            self.assertEqual(json.loads(response.data)[0]["title"], "Titulo 2")
+            self.assertEqual(json.loads(response.data)[1]["title"], "Titulo")
+
+    def test_user_upload_two_videos_one_private(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            time.sleep(0.5)
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo 2", "location": "Buenos Aires",
+                                    "visible":"false","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(json.loads(response.data)), 1)
+            self.assertEqual(json.loads(response.data)[0]["title"], "Titulo")
