@@ -42,12 +42,21 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.post('/user/video', query_string={"email": "caropistillo@gmail.com"}, data={})
             self.assertEqual(response.status_code, 401)
 
+    def test_user_upload_video_missing_email_error(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.post('/user/video',
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
     def test_user_upload_video_missing_fields_error(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "file": (BytesIO(), 'video')},
+                                    "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
@@ -56,17 +65,17 @@ class TestAuthServerEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","file": (BytesIO(), 'video')},
+                                    "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 403)
 
     def test_user_upload_video_invalid_format(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        MediaServer.upload_video = MagicMock(return_value="", side_effects=InvalidVideoFormatError)
+        MediaServer.upload_video = MagicMock(return_value="", side_effect=InvalidVideoFormatError)
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","file": (BytesIO(), 'video')},
+                                    "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
