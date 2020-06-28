@@ -110,6 +110,12 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.get('/user/videos', query_string={"email": "asd@asd.com"})
             self.assertEqual(response.status_code, 401)
 
+    def test_user_list_videos_missing_email(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.get('/user/videos', headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
     def test_user_upload_two_videos_and_list(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         MediaServer.upload_video = MagicMock(return_value="")
