@@ -71,7 +71,7 @@ class Controller:
         if not USERS_REGISTER_MANDATORY_FIELDS.issubset(content.keys()):
             self.logger.debug((messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys())) ))
             return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys())) ), 400
-        photo = Photo()
+        photo = None
         if 'photo' in request.files:
             photo = Photo.from_bytes(request.files['photo'].stream)
         try:
