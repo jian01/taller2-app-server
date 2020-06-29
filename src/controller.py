@@ -16,6 +16,10 @@ from src.services.exceptions.unauthorized_user_error import UnauthorizedUserErro
 from src.services.exceptions.invalid_video_format_error import InvalidVideoFormatError
 from src.database.videos.video_database import VideoDatabase, VideoData
 from src.database.friends.friend_database import FriendDatabase
+from src.database.friends.exceptions.users_already_friends_error import UsersAlreadyFriendsError
+from src.database.friends.exceptions.unexistent_friend_requests import UnexistentFriendRequest
+from src.database.friends.exceptions.unexistent_requestor_user_error import UnexistentRequestorUserError
+from src.database.friends.exceptions.unexistent_target_user_error import UnexistentTargetUserError
 from src.services.media_server import MediaServer
 from datetime import datetime
 
@@ -28,6 +32,7 @@ RECOVER_PASSWORD_MANDATORY_FIELDS = {"email"}
 NEW_PASSWORD_MANDATORY_FIELDS = {"email", "new_password", "token"}
 USERS_REGISTER_MANDATORY_FIELDS = {"email", "password", "phone_number", "fullname"}
 UPLOAD_VIDEO_MANDATORY_FIELDS = {"title", "location", "visible"}
+FRIEND_REQUEST_MANDATORY_FIELDS = {"other_user_email"}
 
 class Controller:
     logger = logging.getLogger(__name__)
@@ -260,3 +265,109 @@ class Controller:
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
         return json.dumps(user_videos), 200
+
+    @auth.login_required
+    def user_send_friend_request(self):
+        """
+        Send a friend request to another user
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        email_token = auth.current_user()[0]
+        try:
+            self.friend_database.create_friend_request(email_token, content["other_user_email"])
+        except UnexistentTargetUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % content["other_user_email"])
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["other_user_email"]), 404
+        except UsersAlreadyFriendsError:
+            self.logger.debug(messages.USERS_ALREADY_FRIEND_ERROR)
+            return messages.ERROR_JSON % messages.USERS_ALREADY_FRIEND_ERROR, 400
+        except UnexistentRequestorUserError:
+            self.logger.debug(messages.INTERNAL_ERROR_CONTACT_ADMINISTRATION)
+            return messages.ERROR_JSON % messages.INTERNAL_ERROR_CONTACT_ADMINISTRATION, 500
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def user_list_friend_requests(self):
+        """
+        Send a friend request to another user
+        :return: a json with the data of the users or an error in another case
+        """
+        email_token = auth.current_user()[0]
+        friend_emails = self.friend_database.get_friend_requests(email_token)
+        friends = [self.auth_server.profile_query(email) for email in friend_emails]
+        return json.dumps(friends), 200
+
+    @auth.login_required
+    def user_accept_friend_request(self):
+        """
+        Accept an existing friend request
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        email_token = auth.current_user()[0]
+        try:
+            self.friend_database.accept_friend_request(content["other_user_email"], email_token)
+        except UnexistentFriendRequest:
+            self.logger.debug(messages.UNEXISTENT_FRIEND_REQUEST % (content["other_user_email"], email_token))
+            return messages.ERROR_JSON % (messages.UNEXISTENT_FRIEND_REQUEST %
+                                          (content["other_user_email"], email_token)), 404
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def user_reject_friend_request(self):
+        """
+        Accept an existing friend request
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        email_token = auth.current_user()[0]
+        try:
+            self.friend_database.reject_friend_request(content["other_user_email"], email_token)
+        except UnexistentFriendRequest:
+            self.logger.debug(messages.UNEXISTENT_FRIEND_REQUEST % (content["other_user_email"], email_token))
+            return messages.ERROR_JSON % (messages.UNEXISTENT_FRIEND_REQUEST %
+                                          (content["other_user_email"], email_token)), 404
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def user_list_friends(self):
+        """
+        List friends of an user
+        :return: a json with a success message on success or an error in another case
+        """
+        email_query = request.args.get('email')
+        if not email_query:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR)
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+        email_token = auth.current_user()[0]
+        if email_token != email_query and not self.friend_database.are_friends(email_token, email_query):
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        friend_emails = self.friend_database.get_friends(email_query)
+        friends = [self.auth_server.profile_query(email) for email in friend_emails]
+        return json.dumps(friends), 200

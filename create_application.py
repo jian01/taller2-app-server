@@ -57,5 +57,15 @@ def create_application_with_controller(controller: Controller):
                      controller.users_video_upload, methods=["POST"])
     app.add_url_rule('/user/videos', 'users_list_videos',
                      controller.users_list_videos, methods=["GET"])
+    app.add_url_rule('/user/friend_request', 'user_send_friend_request',
+                     controller.user_send_friend_request, methods=["POST"])
+    app.add_url_rule('/user/friend_request/accept', 'user_accept_friend_request',
+                     controller.user_accept_friend_request, methods=["POST"])
+    app.add_url_rule('/user/friend_request/reject', 'user_reject_friend_request',
+                     controller.user_reject_friend_request, methods=["POST"])
+    app.add_url_rule('/user/friend_requests', 'user_list_friend_requests',
+                     controller.user_list_friend_requests, methods=["GET"])
+    app.add_url_rule('/user/friends', 'user_list_friends',
+                     controller.user_list_friends, methods=["GET"])
 
     return app

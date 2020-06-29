@@ -31,7 +31,7 @@ class RamFriendDatabase(FriendDatabase):
         if self.are_friends(from_user_email, to_user_email):
             raise UsersAlreadyFriendsError
         if from_user_email not in self.friend_requests:
-            self.friend_requests = {to_user_email}
+            self.friend_requests[from_user_email] = {to_user_email}
         else:
             self.friend_requests.update([to_user_email])
 
@@ -49,6 +49,7 @@ class RamFriendDatabase(FriendDatabase):
         if from_user_email not in self.friend_requests or \
                 to_user_email not in self.friend_requests[from_user_email]:
             raise UnexistentFriendRequest
+        self.friend_requests[from_user_email].remove(to_user_email)
         friend_tuple = list(sorted([from_user_email,to_user_email]))
         friend_tuple = (friend_tuple[0], friend_tuple[1])
         self.friends.update([friend_tuple])
@@ -76,7 +77,7 @@ class RamFriendDatabase(FriendDatabase):
         :param user_email: the user to query for its friend requests
         :return: a list of emails
         """
-        return list(self.friend_requests[user_email])
+        return list(k for k,v in self.friend_requests.items() if user_email in v)
 
     def get_friends(self, user_email: str) -> List[str]:
         """
