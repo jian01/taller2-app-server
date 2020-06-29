@@ -77,9 +77,9 @@ class Controller:
         """
         content = request.form
         if not USERS_REGISTER_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
-        photo = Photo()
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys())) ))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys())) ), 400
+        photo = None
         if 'photo' in request.files:
             photo = Photo.from_bytes(request.files['photo'].stream)
         try:
@@ -106,8 +106,8 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not LOGIN_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys())) ))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys())) ), 400
         try:
             login_token = self.auth_server.user_login(email=content["email"], plain_password=content["password"])
         except InvalidCredentialsError:
@@ -125,8 +125,8 @@ class Controller:
         """
         email_query = request.args.get('email')
         if not email_query:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         try:
             user_data = self.auth_server.profile_query(email_query)
         except UnexistentUserError:
@@ -146,8 +146,8 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not RECOVER_PASSWORD_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (RECOVER_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (RECOVER_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ), 400
         try:
             self.auth_server.send_recovery_email(content["email"])
         except UnexistentUserError:
@@ -167,8 +167,8 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not NEW_PASSWORD_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (NEW_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (NEW_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ), 400
         try:
             self.auth_server.recover_password(content["email"], content["token"], content["new_password"])
         except UnexistentUserError:
@@ -187,8 +187,8 @@ class Controller:
         """
         email_query = request.args.get('email')
         if not email_query:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
         token = auth.current_user()[1]
         if email_token != email_query:
@@ -219,16 +219,16 @@ class Controller:
         """
         email_query = request.args.get('email')
         if not email_query:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
         if email_token != email_query:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         content = request.form
         if not UPLOAD_VIDEO_MANDATORY_FIELDS.issubset(content.keys()) or not "video" in request.files:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys())) ))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys())) ), 400
         title = content["title"]
         location = content["location"]
         visible = True if content["visible"]=="true" else False
@@ -255,8 +255,8 @@ class Controller:
         """
         email_query = request.args.get('email')
         if not email_query:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
         # TODO: check friendship for private videos?
         user_videos = self.video_database.list_user_videos(email_query)

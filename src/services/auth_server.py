@@ -103,7 +103,7 @@ class AuthServer:
         if photo:
             photo_bytes = base64.b64decode(photo.get_base64())
         response = requests.post(self.auth_url+USER_ENDPOINT,
-                                 json={"email": email,
+                                 data={"email": email,
                                        "fullname": fullname,
                                        "password": plain_password,
                                        "phone_number": phone_number},
