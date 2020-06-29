@@ -258,10 +258,10 @@ class Controller:
             self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
             return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
-        # TODO: check friendship for private videos?
         user_videos = self.video_database.list_user_videos(email_query)
         user_videos = [video_data._asdict() for video_data in user_videos]
-        user_videos = [video_data for video_data in user_videos if video_data["visible"]]
+        if email_query != email_token:
+            user_videos = [video_data for video_data in user_videos if video_data["visible"]]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
         return json.dumps(user_videos), 200
@@ -279,8 +279,8 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         try:
             self.friend_database.create_friend_request(email_token, content["other_user_email"])
@@ -319,8 +319,8 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         try:
             self.friend_database.accept_friend_request(content["other_user_email"], email_token)
@@ -343,8 +343,8 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         try:
             self.friend_database.reject_friend_request(content["other_user_email"], email_token)
@@ -362,8 +362,8 @@ class Controller:
         """
         email_query = request.args.get('email')
         if not email_query:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR)
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR, 400
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "email")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "email", 400
         email_token = auth.current_user()[0]
         if email_token != email_query and not self.friend_database.are_friends(email_token, email_query):
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)

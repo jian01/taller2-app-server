@@ -178,6 +178,14 @@ class TestAuthServerEndpoints(unittest.TestCase):
                              headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(len(json.loads(response.data)),0)
+            response = c.get('/user/friends', query_string={"email": "asd@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(json.loads(response.data)),1)
+            response = c.get('/user/friends', query_string={"email": "gian@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(json.loads(response.data)),1)
 
     def test_user_reject_friend_request_ok(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
@@ -198,3 +206,17 @@ class TestAuthServerEndpoints(unittest.TestCase):
                              headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(len(json.loads(response.data)),0)
+
+    def test_user_list_friends_missing_fields(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.get('/user/friends', query_string={},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_user_list_friends_not_authorized(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.get('/user/friends', query_string={"email": "gian@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)

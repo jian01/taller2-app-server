@@ -153,6 +153,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
                                     "visible":"false","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
+            AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
             response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
                              headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
