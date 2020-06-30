@@ -1,5 +1,5 @@
 video_database: PostgresVideoDatabase
-friend_database: RamFriendDatabase
+friend_database: PostgresFriendDatabase
 api_key_secret_generator_env_name: API_GENERATOR_SECRET
 
 auth_server:
@@ -23,7 +23,8 @@ video_databases:
 friend_databases:
   RamFriendDatabase: {}
   PostgresFriendDatabase:
-    videos_table_name: "chotuve.videos"
+    friends_table_name: "chotuve.friends"
+    friend_requests_table_name: "chotuve.friend_requests"
     postgr_host_env_name: "POSTGRES_HOST"
     postgr_user_env_name: "POSTGRES_USER"
     postgr_pass_env_name: "POSTGRES_PASSWORD"

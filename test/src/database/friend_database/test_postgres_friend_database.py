@@ -1,5 +1,6 @@
 from src.database.friends.postgres_friend_database import PostgresFriendDatabase
 from src.database.friends.exceptions.unexistent_friend_requests import UnexistentFriendRequest
+from src.database.friends.exceptions.users_already_friends_error import UsersAlreadyFriendsError
 import pytest
 import psycopg2
 from typing import NamedTuple
@@ -59,7 +60,7 @@ def test_accept_friend_request_ok(monkeypatch, friend_postgres_database):
 
 def test_reject_unexistent_friend_request(monkeypatch, friend_postgres_database):
     with pytest.raises(UnexistentFriendRequest):
-        friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+        friend_postgres_database.reject_friend_request('giancafferata@hotmail.com',
                                                        'cafferatagian@hotmail.com')
 
 def test_reject_friend_request_ok(monkeypatch, friend_postgres_database):
@@ -74,3 +75,12 @@ def test_reject_friend_request_ok(monkeypatch, friend_postgres_database):
     assert len(friend_postgres_database.get_friends('giancafferata@hotmail.com')) == 0
     assert not friend_postgres_database.are_friends('giancafferata@hotmail.com',
                                                     'cafferatagian@hotmail.com')
+
+def test_users_already_friends_when_request(monkeypatch, friend_postgres_database):
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    with pytest.raises(UsersAlreadyFriendsError):
+        friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                       'cafferatagian@hotmail.com')
