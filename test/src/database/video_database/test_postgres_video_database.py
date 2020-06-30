@@ -56,3 +56,11 @@ def test_add_two_videos_and_query(monkeypatch, video_postgres_database):
     assert len(videos) == 2
     assert videos[0].title == "Titulo2"
     assert videos[1].title == "Titulo"
+
+def test_add_two_videos_and_get_top(monkeypatch, video_postgres_database):
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 0
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
+    videos = video_postgres_database.list_top_videos()
+    assert len(videos) == 1
+    assert videos[0][0] == "giancafferata@hotmail.com"

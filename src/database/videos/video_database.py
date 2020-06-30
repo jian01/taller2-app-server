@@ -43,6 +43,14 @@ class VideoDatabase:
         :return: a list video data
         """
 
+    @abstractmethod
+    def list_top_videos(self):
+        """
+        Get top videos
+
+        :return: a list of (user_email, video data)
+        """
+
     @classmethod
     def factory(cls, name: str, *args, **kwargs) -> 'VideoDatabase':
         """

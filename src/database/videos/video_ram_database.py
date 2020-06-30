@@ -33,3 +33,16 @@ class RamVideoDatabase(VideoDatabase):
         :return: a list video data
         """
         return list(reversed(self.videos_by_user[user_email]))
+
+    def list_top_videos(self):
+        """
+        Get top videos
+
+        :return: a list of (user_email, video data)
+        """
+        result = []
+        for k, v in self.videos_by_user.items():
+            for i in range(len(v)):
+                if v[i].visible:
+                    result.append((k,v[i]))
+        return result

@@ -33,10 +33,12 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.app.testing = True
         self.get_logged_email = AuthServer.get_logged_email
         self.upload_video = MediaServer.upload_video
+        self.profile_query = AuthServer.profile_query
 
     def tearDown(self):
         MediaServer.upload_video = self.upload_video
         AuthServer.get_logged_email = self.get_logged_email
+        AuthServer.profile_query = self.profile_query
 
     def test_user_upload_video_without_authentication(self):
         with self.app.test_client() as c:
@@ -159,3 +161,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(len(json.loads(response.data)), 1)
             self.assertEqual(json.loads(response.data)[0]["title"], "Titulo")
+            AuthServer.profile_query = MagicMock(return_value={"Name": "Gianmarco"})
+            response = c.get('/videos/top')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(json.loads(response.data)), 1)

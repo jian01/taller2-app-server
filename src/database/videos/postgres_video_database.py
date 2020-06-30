@@ -20,6 +20,14 @@ WHERE user_email = '%s'
 ORDER BY creation_time DESC
 """
 
+TOP_VIDEO_QUERY = """
+SELECT user_email, title, creation_time, visible, location, file_location, description
+FROM %s
+WHERE visible = true
+ORDER BY RANDOM()
+LIMIT 10
+"""
+
 class PostgresVideoDatabase(VideoDatabase):
     """
     Postgres & Firebase implementation of Database abstraction
@@ -74,3 +82,22 @@ class PostgresVideoDatabase(VideoDatabase):
         cursor.close()
 
         return result
+
+    def list_top_videos(self):
+        """
+        Get top videos
+
+        :return: a list of video data
+        """
+        self.logger.debug("Listing top videos")
+        cursor = self.conn.cursor()
+        cursor.execute(TOP_VIDEO_QUERY % self.videos_table_name)
+        result = cursor.fetchall()
+        # user_email, title, creation_time, visible, location, file_location, description
+        result_videos = [VideoData(title=r[1], creation_time=r[2], visible=r[3], location=r[4],
+                                   file_location=r[5], description=r[6])
+                         for r in result]
+        result_emails = [r[0] for r in result]
+        cursor.close()
+
+        return list(zip(result_emails, result_videos))
