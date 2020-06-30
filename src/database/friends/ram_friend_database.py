@@ -6,7 +6,7 @@ from src.database.friends.friend_database import FriendDatabase
 
 class RamFriendDatabase(FriendDatabase):
     """
-    Friend database abstraction
+    Friend database in ram
     """
     friend_request: Dict[str, Set[str]]
     friends: Set[Tuple[str, str]]
