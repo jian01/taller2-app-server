@@ -15,7 +15,7 @@ from src.database.friends.friend_database import FriendDatabase
 
 NEW_FRIEND_REQUEST_QUERY = """
 INSERT INTO {} ("from", "to", status, timestamp)
-VALUES (%s, %s, pending, %s)
+VALUES (%s, %s, 'pending', %s)
 """
 
 CHECK_FRIENDS_QUERY = """
@@ -25,7 +25,7 @@ WHERE user1 = '%s' AND user2 = '%s'
 """
 
 ALL_FRIENDS_QUERY = """
-SELECT *
+SELECT user1, user2
 FROM {}
 WHERE user1 = '%s' OR user2 = '%s'
 """
@@ -38,11 +38,11 @@ WHERE "to" = '%s'
 
 DELETE_FRIEND_QUERY = """
 DELETE FROM {}
-WHERE "from"='%s' AND "to"=%s;
+WHERE "from"=%s AND "to"=%s;
 """
 
 NEW_FRIENDS_QUERY = """
-INSERT INTO {} ("from", "to")
+INSERT INTO {} (user1, user2)
 VALUES (%s, %s)
 """
 
@@ -109,7 +109,7 @@ class PostgresFriendDatabase(FriendDatabase):
 
         friend_tuple = list(sorted([from_user_email,to_user_email]))
         friend_tuple = (friend_tuple[0], friend_tuple[1])
-        cursor.execute(NEW_FRIENDS_QUERY.format(self.friend_requests_table_name),
+        cursor.execute(NEW_FRIENDS_QUERY.format(self.friends_table_name),
                        friend_tuple)
         self.conn.commit()
 
@@ -144,9 +144,9 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Getting friend requests for %s" % user_email)
         cursor = self.conn.cursor()
-        cursor.execute(FRIEND_REQUEST_QUERY.format(self.friends_table_name) % user_email)
+        cursor.execute(FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name) % user_email)
         result = cursor.fetchall()
-        return result
+        return [r[0] for r in result]
 
     def get_friends(self, user_email: str) -> List[str]:
         """

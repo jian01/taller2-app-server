@@ -42,6 +42,7 @@ create table chotuve.friends
 	constraint table_name_pk
 		unique (user1, user2),
 	check (user1 < user2)
+);
 
 create table chotuve.videos
 (
@@ -59,7 +60,7 @@ create table chotuve.videos
 );
 
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
-VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false)
+VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
 
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
-VALUES ('cafferatagian@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false)
+VALUES ('cafferatagian@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
