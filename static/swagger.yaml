@@ -418,6 +418,25 @@ paths:
           description: Not authorized
           content: {}
       x-codegen-request-body-name: body
+  /videos/top:
+    get:
+      tags:
+        - video
+      summary: Get top videos
+      description: Get top videos
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  video:
+                    $ref: '#/components/schemas/Video'
+      x-codegen-request-body-name: body
 components:
   securitySchemes:
     bearerAuth:
