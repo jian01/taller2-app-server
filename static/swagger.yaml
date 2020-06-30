@@ -10,6 +10,8 @@ tags:
   description: Operations with user
 - name: video
   description: Operations with user's videos
+- name: friendship
+  description: Operations over user's friendships
 paths:
   /user:
     get:
@@ -198,7 +200,7 @@ paths:
       parameters:
         - name: email
           in: query
-          description: The user name for login
+          description: The user name that uploaded the video
           required: true
           schema:
             type: string
@@ -253,6 +255,159 @@ paths:
                 properties:
                   video:
                     $ref: '#/components/schemas/Video'
+        400:
+          description: Missing email
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+      x-codegen-request-body-name: body
+  /user/friend_request:
+    post:
+      tags:
+      - friendship
+      summary: Created a friend request
+      description: Created a friend request
+      requestBody:
+        description: Other user data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                other_user_email:
+                  type: string
+        required: true
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields, users already friend or request is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        404:
+          description: Other user not found
+          content: {}
+      x-codegen-request-body-name: body
+  /user/friend_request/accept:
+    post:
+      tags:
+      - friendship
+      summary: Accepts a friend request
+      description: Accepts a friend request
+      requestBody:
+        description: Other user data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                other_user_email:
+                  type: string
+        required: true
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields or request is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        404:
+          description: Unexistent friend request
+          content: {}
+      x-codegen-request-body-name: body
+  /user/friend_request/reject:
+    post:
+      tags:
+      - friendship
+      summary: Rejects a friend request
+      description: Rejects a friend request
+      requestBody:
+        description: Other user data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                other_user_email:
+                  type: string
+        required: true
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields or request is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        404:
+          description: Unexistent friend request
+          content: {}
+      x-codegen-request-body-name: body
+  /user/friend_requests:
+    get:
+      tags:
+        - friendship
+      summary: List users that have a friend request pending for you
+      description: List users that have a friend request pending for you
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  video:
+                    $ref: '#/components/schemas/User'
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
+  /user/friends:
+    get:
+      tags:
+        - friendship
+      summary: List users that have a friend request pending for you
+      description: List users that have a friend request pending for you
+      parameters:
+        - name: email
+          in: query
+          description: The user's friends to get
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  video:
+                    $ref: '#/components/schemas/User'
         400:
           description: Missing email
           content: {}
