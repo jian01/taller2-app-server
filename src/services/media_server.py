@@ -42,7 +42,7 @@ class MediaServer:
         self.logger.debug("Uploading video for %s" % user_email)
         r = requests.post(self.media_url + VIDEOS_ENDPOINT,
                           data={"email": user_email, "title": title},
-                          files={"file": video},
+                          files={"file": ("video.mp4", video)},
                           timeout=VIDEO_UPLOAD_TIMEOUT)
         if r.status_code == 400:
             raise InvalidVideoFormatError
