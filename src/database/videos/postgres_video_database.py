@@ -105,7 +105,7 @@ class PostgresVideoDatabase(VideoDatabase):
                                    file_location=r[8], description=r[9])
                          for r in result]
         result_emails = [{"email": r[0], "fullname": r[1], "phone_number":r[2],
-                          "photo": r[4]} for r in result]
+                          "photo": r[3]} for r in result]
         cursor.close()
 
         return list(zip(result_emails, result_videos))
