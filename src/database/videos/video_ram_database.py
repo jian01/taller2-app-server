@@ -38,11 +38,11 @@ class RamVideoDatabase(VideoDatabase):
         """
         Get top videos
 
-        :return: a list of (user_email, video data)
+        :return: a list of (user data, video data)
         """
         result = []
         for k, v in self.videos_by_user.items():
             for i in range(len(v)):
                 if v[i].visible:
-                    result.append((k,v[i]))
+                    result.append(({"email": k},v[i]))
         return result

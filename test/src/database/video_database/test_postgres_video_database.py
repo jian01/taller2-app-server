@@ -24,7 +24,7 @@ def video_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "dummy"
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
-    database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"]*5))
+    database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"]*6))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/video_database/config/initialize_db.sql", "r") as initialize_query:
         cursor = postgresql.cursor()
@@ -33,13 +33,14 @@ def video_postgres_database(monkeypatch, postgresql):
         cursor.close()
     database.conn = postgresql
     database.videos_table_name = "chotuve.videos"
+    database.users_table_name = "chotuve.users"
     return database
 
 def test_postgres_connection_error(monkeypatch, video_postgres_database):
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(1))
     with pytest.raises(ConnectionError):
-        database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"] * 5))
+        database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"] * 6))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
 
 def test_add_video_and_query(monkeypatch, video_postgres_database):
@@ -63,4 +64,4 @@ def test_add_two_videos_and_get_top(monkeypatch, video_postgres_database):
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
     videos = video_postgres_database.list_top_videos()
     assert len(videos) == 1
-    assert videos[0][0] == "giancafferata@hotmail.com"
+    assert videos[0][0]["email"] == "giancafferata@hotmail.com"

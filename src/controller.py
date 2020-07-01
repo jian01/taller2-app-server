@@ -273,10 +273,10 @@ class Controller:
         """
         top_videos_data = self.video_database.list_top_videos()
         user_videos = [data[1]._asdict() for data in top_videos_data]
-        user_emails = [self.auth_server.profile_query(data[0]) for data in top_videos_data]
+        user_emails = [data[0] for data in top_videos_data]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
-        return json.dumps([[u,v] for v,u in zip(user_videos, user_emails)]), 200
+        return json.dumps([{"user": u,"video": v} for v,u in zip(user_videos, user_emails)]), 200
 
     @auth.login_required
     def user_send_friend_request(self):

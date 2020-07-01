@@ -34,10 +34,4 @@ create table chotuve.videos
 );
 
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
-VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false)
-ON CONFLICT (email) DO UPDATE
-  SET fullname = excluded.fullname,
-      phone_number = excluded.phone_number,
-      photo = excluded.photo,
-      password = excluded.password,
-      admin = excluded.admin;
+VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);

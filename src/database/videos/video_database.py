@@ -48,7 +48,7 @@ class VideoDatabase:
         """
         Get top videos
 
-        :return: a list of (user_email, video data)
+        :return: a list of (user data, video data)
         """
 
     @classmethod

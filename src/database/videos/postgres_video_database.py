@@ -21,11 +21,15 @@ ORDER BY creation_time DESC
 """
 
 TOP_VIDEO_QUERY = """
+SELECT user_email, u.fullname, u.phone_number, u.photo, title, creation_time, visible, location, file_location, description
+FROM (
 SELECT user_email, title, creation_time, visible, location, file_location, description
 FROM %s
 WHERE visible = true
 ORDER BY RANDOM()
-LIMIT 10
+LIMIT 10) as v
+INNER JOIN %s as u
+ON u.email = v.user_email
 """
 
 class PostgresVideoDatabase(VideoDatabase):
@@ -34,10 +38,12 @@ class PostgresVideoDatabase(VideoDatabase):
     """
     logger = logging.getLogger(__name__)
     # TODO: avoid sql injection
-    def __init__(self, videos_table_name: str, postgr_host_env_name: str,
-                 postgr_user_env_name: str, postgr_pass_env_name: str, postgr_database_env_name: str):
+    def __init__(self, videos_table_name: str, users_table_name: str,
+                 postgr_host_env_name: str, postgr_user_env_name: str,
+                 postgr_pass_env_name: str, postgr_database_env_name: str):
 
         self.videos_table_name = videos_table_name
+        self.users_table_name = users_table_name
         self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
                                      password=os.environ[postgr_pass_env_name],
                                      database=os.environ[postgr_database_env_name])
@@ -87,17 +93,19 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         Get top videos
 
-        :return: a list of video data
+        :return: a list of (user data, video data)
         """
         self.logger.debug("Listing top videos")
         cursor = self.conn.cursor()
-        cursor.execute(TOP_VIDEO_QUERY % self.videos_table_name)
+        cursor.execute(TOP_VIDEO_QUERY % (self.videos_table_name,
+                                          self.users_table_name))
         result = cursor.fetchall()
-        # user_email, title, creation_time, visible, location, file_location, description
-        result_videos = [VideoData(title=r[1], creation_time=r[2], visible=r[3], location=r[4],
-                                   file_location=r[5], description=r[6])
+        # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description
+        result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
+                                   file_location=r[8], description=r[9])
                          for r in result]
-        result_emails = [r[0] for r in result]
+        result_emails = [{"email": r[0], "fullname": r[1], "phone_number":r[2],
+                          "photo": r[4]} for r in result]
         cursor.close()
 
         return list(zip(result_emails, result_videos))
