@@ -7,7 +7,7 @@ RUN apt-get install -qy python \
                         python-pip \
                         python-setuptools \
                         build-essential
-RUN apt-get install nginx supervisord -qy
+RUN apt-get install nginx supervisor -qy
 ADD nginx-default /etc/nginx/sites-available/default
 RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
 RUN chown -R www-data:www-data /var/lib/nginx
