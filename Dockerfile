@@ -1,6 +1,15 @@
-FROM python:3.7
+FROM ubuntu:18.04
 COPY . /app
 WORKDIR /app
-RUN apt install nginx
-COPY ./nginx /etc/nginx/sites-available
+RUN apt-get update
+RUN apt-get install -qy python \
+                        python-dev \
+                        python-pip \
+                        python-setuptools \
+                        build-essential
+RUN apt install nginx supervisord -qy
+ADD nginx-default /etc/nginx/sites-available/default
+RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
+RUN chown -R www-data:www-data /var/lib/nginx
+EXPOSE 80
 RUN pip install -r requirements.txt
