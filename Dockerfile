@@ -12,4 +12,4 @@ ADD nginx-default /etc/nginx/sites-available/default
 RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
 RUN chown -R www-data:www-data /var/lib/nginx
 EXPOSE 80
-RUN pip3 install -r requirements.txt
+RUN pip install -r requirements.txt
