@@ -198,7 +198,7 @@ class AuthServer:
         if not content and not photo_bytes:
             return
         response = requests.put(self.auth_url + USER_ENDPOINT, data=content,
-                                query_string={"api_key": self.api_key, "email": email},
+                                params={"api_key": self.api_key, "email": email},
                                 files={"photo": photo_bytes} if photo_bytes else {},
                                 timeout=DEFAULT_TIMEOUT,
                                 headers={"Authorization": "Bearer %s" % user_token})
