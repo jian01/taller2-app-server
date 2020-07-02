@@ -1,6 +1,6 @@
 server {
-    listen 80;
-    server_name <tu nombre de dominio>;
+    listen ${PORT};
+    server_name localhost;
     location /static {
         alias /root/tutorial-flask/app/static;
     }
