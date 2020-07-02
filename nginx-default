@@ -1,5 +1,5 @@
 server {
-    listen ${PORT};
+    listen <%= ENV['PORT'] %>;
     server_name localhost;
     location /static {
         alias /root/tutorial-flask/app/static;
