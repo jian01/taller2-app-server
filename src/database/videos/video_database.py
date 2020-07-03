@@ -51,6 +51,15 @@ class VideoDatabase:
         :return: a list of (user data, video data)
         """
 
+    @abstractmethod
+    def search_videos(self, search_query: str):
+        """
+        Searches videos with a query
+
+        :param search_query: the query to search
+        :return: a list of (user data, video data)
+        """
+
     @classmethod
     def factory(cls, name: str, *args, **kwargs) -> 'VideoDatabase':
         """

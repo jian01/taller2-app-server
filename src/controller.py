@@ -268,12 +268,28 @@ class Controller:
 
     def list_top_videos(self):
         """
-        Uploads a video for a user
+        List top videos
         :return: a json with the videos data or an error in another case
         """
         top_videos_data = self.video_database.list_top_videos()
         user_videos = [data[1]._asdict() for data in top_videos_data]
         user_emails = [data[0] for data in top_videos_data]
+        for i in range(len(user_videos)):
+            user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
+        return json.dumps([{"user": u,"video": v} for v,u in zip(user_videos, user_emails)]), 200
+
+    def search_videos(self):
+        """
+        Searches for a video
+        :return: a json with the videos data or an error in another case
+        """
+        query = request.args.get('query')
+        if not query:
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "query"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "query"), 400
+        videos_data = self.video_database.search_videos(query)
+        user_videos = [data[1]._asdict() for data in videos_data]
+        user_emails = [data[0] for data in videos_data]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
         return json.dumps([{"user": u,"video": v} for v,u in zip(user_videos, user_emails)]), 200
