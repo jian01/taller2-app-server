@@ -11,11 +11,11 @@ from io import BytesIO
 class FakePostgres(NamedTuple):
     closed: int
 
-fake_video_data = VideoData(title="Titulo", description="Descripcion",
+fake_video_data = VideoData(title="Titulo", description="Descripcion coso",
                             creation_time=datetime.datetime.now(), visible=True,
                             location="Buenos Aires", file_location="file_location")
 
-fake_video_data2 = VideoData(title="Titulo2", description="Descripcion",
+fake_video_data2 = VideoData(title="Titulo2", description="Descripcion2 coso",
                              creation_time=datetime.datetime.now()+datetime.timedelta(days=1), visible=True,
                              location="Buenos Aires", file_location="file_location")
 
@@ -51,17 +51,32 @@ def test_add_video_and_query(monkeypatch, video_postgres_database):
 
 def test_add_two_videos_and_query(monkeypatch, video_postgres_database):
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
-    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data2)
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 2
     assert videos[0].title == "Titulo2"
     assert videos[1].title == "Titulo"
 
-def test_add_two_videos_and_get_top(monkeypatch, video_postgres_database):
+def test_add_video_and_get_top(monkeypatch, video_postgres_database):
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 0
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
     videos = video_postgres_database.list_top_videos()
     assert len(videos) == 1
     assert videos[0][0]["email"] == "giancafferata@hotmail.com"
+
+def test_add_two_videos_and_search(monkeypatch, video_postgres_database):
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data2)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 2
+    assert len(video_postgres_database.search_videos("titulo")) == 1
+    assert len(video_postgres_database.search_videos("Titulo")) == 1
+    assert len(video_postgres_database.search_videos("titulo2")) == 1
+    assert len(video_postgres_database.search_videos("Titulo2")) == 1
+    assert len(video_postgres_database.search_videos("descripcion")) == 1
+    assert len(video_postgres_database.search_videos("descripcion2")) == 1
+    assert len(video_postgres_database.search_videos("coso")) == 2
+    search_result = video_postgres_database.search_videos("coso titulo")
+    assert len(search_result) == 2
+    assert search_result[0][1].title == "Titulo"

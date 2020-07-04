@@ -7,6 +7,7 @@ import json
 import requests
 import math
 import datetime
+from nltk import word_tokenize
 
 VIDEO_INSERT_QUERY = """
 INSERT INTO {} (user_email, title, creation_time, visible, location, file_location, description)
@@ -31,6 +32,20 @@ LIMIT 10) as v
 INNER JOIN %s as u
 ON u.email = v.user_email
 """
+
+BASE_SEARCH_QUERY = """
+SELECT user_email, u.fullname, u.phone_number, u.photo, title, creation_time, visible, location, file_location, description
+FROM (
+SELECT * FROM %s
+WHERE (%s) AND visible = true
+ORDER BY RANDOM()
+LIMIT 100) as v
+INNER JOIN %s as u
+ON u.email = v.user_email
+"""
+
+LIKE_SEARCH_TITLE_ELEMENT = "LOWER(title) LIKE '%{}%'"
+LIKE_SEARCH_DESCRIPTION_ELEMENT = "LOWER(description) LIKE '%{}%'"
 
 class PostgresVideoDatabase(VideoDatabase):
     """
@@ -109,3 +124,60 @@ class PostgresVideoDatabase(VideoDatabase):
         cursor.close()
 
         return list(zip(result_emails, result_videos))
+
+    @staticmethod
+    def build_search_query(tokenized_query: List[str], videos_table_name: str,
+                           users_table_name: str) -> str:
+        """
+        Builds the query for searching
+        """
+        where_conditions = []
+        for token in tokenized_query:
+            where_conditions.append(LIKE_SEARCH_TITLE_ELEMENT.format(token))
+            where_conditions.append("OR")
+            where_conditions.append(LIKE_SEARCH_DESCRIPTION_ELEMENT.format(token))
+            where_conditions.append("OR")
+        where_conditions = " ".join(where_conditions[:-1])
+        return BASE_SEARCH_QUERY % (videos_table_name, where_conditions, users_table_name)
+
+
+    def search_videos(self, search_query: str):
+        """
+        Searches videos with a query
+
+        :param search_query: the query to search
+        :return: a list of (user data, video data)
+        """
+        tokenized_query = word_tokenize(search_query.lower())[:20]
+        bigrams_query = [tokenized_query[i:i + 2] for i in range(len(tokenized_query) - 2 + 1)]
+
+        self.logger.debug("Searching query %s" % search_query)
+        cursor = self.conn.cursor()
+        query = self.build_search_query(tokenized_query, self.videos_table_name, self.users_table_name)
+        cursor.execute(query)
+        result = cursor.fetchall()
+        # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description
+        result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
+                                   file_location=r[8], description=r[9])
+                         for r in result]
+        result_emails = [{"email": r[0], "fullname": r[1], "phone_number":r[2],
+                          "photo": r[3]} for r in result]
+        cursor.close()
+
+        result = []
+        for u, v in zip(result_emails,result_videos):
+            word_count = 0
+            desc_count = 0
+            tokenized_title = word_tokenize(v.title.lower())
+            bigrams_title = [tokenized_title[i:i + 2] for i in range(len(tokenized_title) - 2 + 1)]
+            tokenized_desc = (word_tokenize(v.description[:1000].lower()) if v.description else [])
+            for w in tokenized_query:
+                word_count += len([t for t in tokenized_title if t == w])
+                desc_count += len([t for t in tokenized_desc if t == w])
+            for b in bigrams_query:
+                word_count += len([t for t in bigrams_title if t == b])
+            if word_count > 0 or desc_count > 0:
+                result.append((u, v, word_count * 0.8 + desc_count * 0.2))
+        result = sorted(result, key=lambda x:x[2],reverse=True)
+        result = [(r[0],r[1]) for r in result]
+        return result

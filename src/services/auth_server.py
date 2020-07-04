@@ -117,7 +117,6 @@ class AuthServer:
                 raise InvalidRegisterFieldError(response.json()["message"])
         response.raise_for_status()
 
-    @lru_cache(maxsize=300)
     def profile_query(self, email: str) -> Dict:
         """
         Queries an user by its email
