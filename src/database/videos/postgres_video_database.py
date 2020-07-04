@@ -77,11 +77,14 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("Saving video for user with email %s" % user_email)
-
-        cursor.execute(VIDEO_INSERT_QUERY.format(self.videos_table_name),
-                       (user_email, video_data.title, video_data.creation_time.isoformat(),
-                        video_data.visible, video_data.location, video_data.file_location,
-                        video_data.description))
+        try:
+            cursor.execute(VIDEO_INSERT_QUERY.format(self.videos_table_name),
+                           (user_email, video_data.title, video_data.creation_time.isoformat(),
+                            video_data.visible, video_data.location, video_data.file_location,
+                            video_data.description))
+        except Exception as err:
+            self.conn.rollback()
+            raise err
         self.conn.commit()
         cursor.close()
 
@@ -94,7 +97,11 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         self.logger.debug("Listing videos for user with email %s" % user_email)
         cursor = self.conn.cursor()
-        cursor.execute(LIST_USER_VIDEOS_QUERY % (self.videos_table_name, user_email))
+        try:
+            cursor.execute(LIST_USER_VIDEOS_QUERY % (self.videos_table_name, user_email))
+        except Exception as err:
+            self.conn.rollback()
+            raise err
         result = cursor.fetchall()
         # title, creation_time, visible, location, file_location, description
         result = [VideoData(title=r[0], creation_time=r[1], visible=r[2], location=r[3],
@@ -112,8 +119,12 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         self.logger.debug("Listing top videos")
         cursor = self.conn.cursor()
-        cursor.execute(TOP_VIDEO_QUERY % (self.videos_table_name,
+        try:
+            cursor.execute(TOP_VIDEO_QUERY % (self.videos_table_name,
                                           self.users_table_name))
+        except Exception as err:
+            self.conn.rollback()
+            raise err
         result = cursor.fetchall()
         # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description
         result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
@@ -154,7 +165,11 @@ class PostgresVideoDatabase(VideoDatabase):
         self.logger.debug("Searching query %s" % search_query)
         cursor = self.conn.cursor()
         query = self.build_search_query(tokenized_query, self.videos_table_name, self.users_table_name)
-        cursor.execute(query)
+        try:
+            cursor.execute(query)
+        except Exception as err:
+            self.conn.rollback()
+            raise err
         result = cursor.fetchall()
         # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description
         result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],

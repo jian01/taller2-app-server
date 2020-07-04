@@ -60,6 +60,15 @@ class VideoDatabase:
         :return: a list of (user data, video data)
         """
 
+    @abstractmethod
+    def like_video(self, user_email: str, video_title: str) -> NoReturn:
+        """
+
+        :param user_email:
+        :param video_title:
+        :return:
+        """
+
     @classmethod
     def factory(cls, name: str, *args, **kwargs) -> 'VideoDatabase':
         """

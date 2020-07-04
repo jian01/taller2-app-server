@@ -260,7 +260,7 @@ class Controller:
         email_token = auth.current_user()[0]
         user_videos = self.video_database.list_user_videos(email_query)
         user_videos = [video_data._asdict() for video_data in user_videos]
-        if email_query != email_token:
+        if email_query != email_token or not self.friend_database.are_friends(email_query, email_token):
             user_videos = [video_data for video_data in user_videos if video_data["visible"]]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
