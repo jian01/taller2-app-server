@@ -61,11 +61,14 @@ class VideoDatabase:
         """
 
     @abstractmethod
-    def like_video(self, user_email: str, video_title: str) -> NoReturn:
+    def like_video(self, actor_email: str, target_email: str,
+                   video_title: str) -> NoReturn:
         """
+        Likes a video
 
-        :param user_email:
-        :param video_title:
+        :param actor_email: the liker of the video
+        :param target_email: the email of the owner of the video
+        :param video_title: the title of the video
         :return:
         """
 

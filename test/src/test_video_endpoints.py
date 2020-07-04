@@ -170,7 +170,8 @@ class TestAuthServerEndpoints(unittest.TestCase):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         MediaServer.upload_video = MagicMock(return_value="")
         with self.app.test_client() as c:
-            response = c.get('/videos/search')
+            response = c.get('/videos/search',
+                             headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
     def test_user_upload_videos_and_search(self):
@@ -203,7 +204,8 @@ class TestAuthServerEndpoints(unittest.TestCase):
                               "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            response = c.get('/videos/search', query_string={"query": "hola como estas"})
+            response = c.get('/videos/search', query_string={"query": "hola como estas"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
             self.assertEqual(len(data), 5)

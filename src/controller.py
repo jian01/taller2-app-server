@@ -260,7 +260,7 @@ class Controller:
         email_token = auth.current_user()[0]
         user_videos = self.video_database.list_user_videos(email_query)
         user_videos = [video_data._asdict() for video_data in user_videos]
-        if email_query != email_token or not self.friend_database.are_friends(email_query, email_token):
+        if email_query != email_token and not self.friend_database.are_friends(email_query, email_token):
             user_videos = [video_data for video_data in user_videos if video_data["visible"]]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
@@ -278,6 +278,7 @@ class Controller:
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
         return json.dumps([{"user": u,"video": v} for v,u in zip(user_videos, user_emails)]), 200
 
+    @auth.login_required
     def search_videos(self):
         """
         Searches for a video
@@ -290,9 +291,17 @@ class Controller:
         videos_data = self.video_database.search_videos(query)
         user_videos = [data[1]._asdict() for data in videos_data]
         user_emails = [data[0] for data in videos_data]
+
+        email_token = auth.current_user()[0]
+        filtered_videos = []
+        filtered_users = []
+        for v, u in zip(user_videos, user_emails):
+            if v["visible"] or (u["email"] == email_token or self.friend_database.are_friends(u["email"], email_token)):
+                filtered_videos.append(v)
+                filtered_users.append(u)
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
-        return json.dumps([{"user": u,"video": v} for v,u in zip(user_videos, user_emails)]), 200
+        return json.dumps([{"user": u,"video": v} for v,u in zip(filtered_videos, filtered_users)]), 200
 
     @auth.login_required
     def user_send_friend_request(self):
