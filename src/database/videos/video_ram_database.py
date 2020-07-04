@@ -2,7 +2,7 @@ from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from abc import abstractmethod
 from datetime import datetime
 from src.database.videos.video_database import VideoData, VideoDatabase
-from nltk import word_tokenize, ngrams
+from nltk import word_tokenize
 
 
 class RamVideoDatabase(VideoDatabase):
