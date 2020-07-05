@@ -1,0 +1,2 @@
+class UsersAreNotFriendsError(AttributeError):
+    pass

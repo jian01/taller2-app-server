@@ -80,4 +80,11 @@ def create_application_with_controller(controller: Controller):
     app.add_url_rule('/user/friendship_status_with', 'friendship_status_with',
                      controller.friendship_status_with, methods=["GET"])
 
+    app.add_url_rule('/user/message', 'user_send_message',
+                     controller.send_message, methods=["POST"])
+    app.add_url_rule('/user/messages_with', 'user_list_messages',
+                     controller.get_messages, methods=["GET"])
+    app.add_url_rule('/user/last_conversations', 'last_conversations',
+                     controller.get_last_conversations, methods=["GET"])
+
     return app

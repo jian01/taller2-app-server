@@ -1,0 +1,2 @@
+class NoMoreMessagesError(AttributeError):
+    pass

@@ -291,5 +291,3 @@ class TestAuthServerEndpoints(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             status = json.loads(response.data)
             self.assertEqual(status["status"], "friends")
-
-

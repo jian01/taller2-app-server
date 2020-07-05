@@ -20,6 +20,8 @@ from src.database.friends.exceptions.users_already_friends_error import UsersAlr
 from src.database.friends.exceptions.unexistent_friend_requests import UnexistentFriendRequest
 from src.database.friends.exceptions.unexistent_requestor_user_error import UnexistentRequestorUserError
 from src.database.friends.exceptions.unexistent_target_user_error import UnexistentTargetUserError
+from src.database.friends.exceptions.users_are_not_friends_error import UsersAreNotFriendsError
+from src.database.friends.exceptions.no_more_messages_error import NoMoreMessagesError
 from src.services.media_server import MediaServer
 from datetime import datetime
 
@@ -34,6 +36,7 @@ UPLOAD_VIDEO_MANDATORY_FIELDS = {"title", "location", "visible"}
 FRIEND_REQUEST_MANDATORY_FIELDS = {"other_user_email"}
 VIDEO_REACTION_MANDATORY_FIELDS = {"target_email", "video_title", "reaction"}
 VIDEO_REACTION_DELETE_MANDATORY_FIELDS = {"target_email", "video_title"}
+SEND_MESSAGE_MANDATORY_FIELDS = {"other_user_email", "message"}
 
 
 class Controller:
@@ -498,3 +501,70 @@ class Controller:
         self.video_database.delete_reaction(email_token, content["target_email"],
                                             content["video_title"])
         return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def send_message(self):
+        """
+        Sends a private message
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not SEND_MESSAGE_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(
+                messages.MISSING_FIELDS_ERROR % (SEND_MESSAGE_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        SEND_MESSAGE_MANDATORY_FIELDS - set(content.keys())), 400
+        email_token = auth.current_user()[0]
+        try:
+            self.friend_database.send_message(email_token, content["other_user_email"],
+                                              content["message"])
+        except UsersAreNotFriendsError:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def get_messages(self):
+        """
+        Get the messages paginated
+        :return: a json with the messages on success or an error in another case
+        """
+        other_user_email = request.args.get('other_user_email')
+        page = request.args.get('page')
+        per_page = request.args.get('per_page')
+        if not other_user_email or not page or not per_page:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "query params")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "query params", 400
+        email_token = auth.current_user()[0]
+        page = int(page)
+        per_page = int(per_page)
+        try:
+            message_list, pages = self.friend_database.get_conversation(email_token, other_user_email, per_page, page)
+        except NoMoreMessagesError:
+            return messages.NO_MORE_PAGES_ERROR, 404
+        message_list = [m._asdict() for m in message_list]
+        for i in range(len(message_list)):
+            message_list[i]["timestamp"] = message_list[i]["timestamp"].isoformat()
+        return json.dumps({"messages": message_list, "pages": pages}), 200
+
+    @auth.login_required
+    def get_last_conversations(self):
+        """
+        Get the last conversations
+        :return: a json with the last conversations [{"user_email": email, "last_message": last message}] on success
+        or an error in another case
+        """
+        email_token = auth.current_user()[0]
+        user_data, last_messages = self.friend_database.get_conversations(email_token)
+        last_messages = [m._asdict() for m in last_messages]
+        for i in range(len(last_messages)):
+            last_messages[i]["timestamp"] = last_messages[i]["timestamp"].isoformat()
+        response = []
+        for i in range(len(last_messages)):
+            response.append({"user": user_data[i], "last_message": last_messages[i]})
+        return json.dumps(response), 200
