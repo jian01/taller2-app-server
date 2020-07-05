@@ -101,3 +101,16 @@ class RamFriendDatabase(FriendDatabase):
         friend_tuple = list(sorted([user_email1,user_email2]))
         friend_tuple = (friend_tuple[0], friend_tuple[1])
         return friend_tuple in self.friends
+
+    def exists_friend_request(self, from_user_email: str, to_user_email: str) -> bool:
+        """
+        Check if exists friend request from 'requestor' to 'receiver'
+
+        :param from_user_email: the requestor of the friendship
+        :param to_user_email: the receiver of the request
+        :return: a boolean indicating whether the friend request exists
+        """
+        if from_user_email not in self.friend_requests or \
+                to_user_email not in self.friend_requests[from_user_email]:
+            return False
+        return True

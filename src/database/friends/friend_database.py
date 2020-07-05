@@ -75,6 +75,16 @@ class FriendDatabase:
         :return: a boolean indicating whether user1 is friend user2's friend
         """
 
+    @abstractmethod
+    def exists_friend_request(self, from_user_email: str, to_user_email: str) -> bool:
+        """
+        Check if exists friend request from 'requestor' to 'receiver'
+
+        :param from_user_email: the requestor of the friendship
+        :param to_user_email: the receiver of the request
+        :return: a boolean indicating whether the friend request exists
+        """
+
     @classmethod
     def factory(cls, name: str, *args, **kwargs) -> 'FriendDatabase':
         """

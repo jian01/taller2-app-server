@@ -243,3 +243,61 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.post('/user/friend_request', json={"other_user_email": "gian@asd.com"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
+
+    def test_user_frienship_status_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.get('/user/friendship_status_with',
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_user_frienship_status_ok(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.get('/user/friendship_status_with',
+                             query_string={"other": "gian@asd.com"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            status = json.loads(response.data)
+            self.assertEqual(status["are_friends"], False)
+            self.assertEqual(status["received_friend_request"], False)
+            self.assertEqual(status["sent_friend_request"], False)
+
+            response = c.post('/user/friend_request', json={"other_user_email": "gian@asd.com"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+            response = c.get('/user/friendship_status_with',
+                             query_string={"other": "gian@asd.com"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            status = json.loads(response.data)
+            self.assertEqual(status["are_friends"], False)
+            self.assertEqual(status["received_friend_request"], False)
+            self.assertEqual(status["sent_friend_request"], True)
+
+            AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
+
+            response = c.get('/user/friendship_status_with',
+                             query_string={"other": "asd@asd.com"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            status = json.loads(response.data)
+            self.assertEqual(status["are_friends"], False)
+            self.assertEqual(status["received_friend_request"], True)
+            self.assertEqual(status["sent_friend_request"], False)
+
+            response = c.post('/user/friend_request/accept', json={"other_user_email": "asd@asd.com"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+            response = c.get('/user/friendship_status_with',
+                             query_string={"other": "asd@asd.com"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            status = json.loads(response.data)
+            self.assertEqual(status["are_friends"], True)
+            self.assertEqual(status["received_friend_request"], False)
+            self.assertEqual(status["sent_friend_request"], False)
+
+

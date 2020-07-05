@@ -39,6 +39,8 @@ def test_create_friend_request_ok(monkeypatch, friend_postgres_database):
     assert len(friend_postgres_database.get_friend_requests('cafferatagian@hotmail.com')) == 1
     assert friend_postgres_database.get_friend_requests('cafferatagian@hotmail.com') == ['giancafferata@hotmail.com']
     assert len(friend_postgres_database.get_friend_requests('giancafferata@hotmail.com')) == 0
+    assert friend_postgres_database.exists_friend_request('giancafferata@hotmail.com',
+                                                          'cafferatagian@hotmail.com')
 
 def test_accept_unexistent_friend_request(monkeypatch, friend_postgres_database):
     with pytest.raises(UnexistentFriendRequest):
@@ -68,8 +70,16 @@ def test_reject_friend_request_ok(monkeypatch, friend_postgres_database):
                                                     'cafferatagian@hotmail.com')
     friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
                                                    'cafferatagian@hotmail.com')
+    assert friend_postgres_database.exists_friend_request('giancafferata@hotmail.com',
+                                                          'cafferatagian@hotmail.com')
+    assert not friend_postgres_database.exists_friend_request('cafferatagian@hotmail.com',
+                                                              'giancafferata@hotmail.com')
     friend_postgres_database.reject_friend_request('giancafferata@hotmail.com',
                                                    'cafferatagian@hotmail.com')
+    assert not friend_postgres_database.exists_friend_request('giancafferata@hotmail.com',
+                                                              'cafferatagian@hotmail.com')
+    assert not friend_postgres_database.exists_friend_request('cafferatagian@hotmail.com',
+                                                              'giancafferata@hotmail.com')
     assert len(friend_postgres_database.get_friend_requests('cafferatagian@hotmail.com')) == 0
     assert len(friend_postgres_database.get_friends('cafferatagian@hotmail.com')) == 0
     assert len(friend_postgres_database.get_friends('giancafferata@hotmail.com')) == 0

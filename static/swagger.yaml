@@ -496,6 +496,40 @@ paths:
           description: Access token is missing or invalid
           content: {}
       x-codegen-request-body-name: body
+  /user/friendship_status_with:
+    get:
+      tags:
+        - friendship
+      summary: Get friendship status
+      description: Gets a friendship status
+      parameters:
+        - name: email
+          in: query
+          description: The user's friends to get
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  are_friends:
+                    type: boolean
+                  received_friend_request:
+                    type: boolean
+                  sent_friend_request:
+                    type: boolean
+        400:
+          description: Missing fields
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
 
 components:
   securitySchemes:

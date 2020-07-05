@@ -23,7 +23,6 @@ from src.database.friends.exceptions.unexistent_target_user_error import Unexist
 from src.services.media_server import MediaServer
 from datetime import datetime
 
-
 auth = HTTPTokenAuth(scheme='Bearer')
 
 LOGIN_MANDATORY_FIELDS = {"email", "password"}
@@ -36,8 +35,10 @@ FRIEND_REQUEST_MANDATORY_FIELDS = {"other_user_email"}
 VIDEO_REACTION_MANDATORY_FIELDS = {"target_email", "video_title", "reaction"}
 VIDEO_REACTION_DELETE_MANDATORY_FIELDS = {"target_email", "video_title"}
 
+
 class Controller:
     logger = logging.getLogger(__name__)
+
     def __init__(self, auth_server: AuthServer,
                  media_server: MediaServer,
                  video_database: VideoDatabase,
@@ -49,6 +50,7 @@ class Controller:
         self.media_server = media_server
         self.video_database = video_database
         self.friend_database = friend_database
+
         @auth.verify_token
         def verify_token(token) -> Optional[Tuple[str, str]]:
             """
@@ -79,8 +81,9 @@ class Controller:
         """
         content = request.form
         if not USERS_REGISTER_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys())) ))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys())) ), 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys()))))
+            return messages.ERROR_JSON % (
+                        messages.MISSING_FIELDS_ERROR % (USERS_REGISTER_MANDATORY_FIELDS - set(content.keys()))), 400
         photo = None
         if 'photo' in request.files:
             photo = Photo.from_bytes(request.files['photo'].stream)
@@ -108,8 +111,9 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not LOGIN_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys())) ))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys())) ), 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys()))))
+            return messages.ERROR_JSON % (
+                        messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys()))), 400
         try:
             login_token = self.auth_server.user_login(email=content["email"], plain_password=content["password"])
         except InvalidCredentialsError:
@@ -148,8 +152,10 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not RECOVER_PASSWORD_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % (RECOVER_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (RECOVER_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ), 400
+            self.logger.debug(
+                (messages.MISSING_FIELDS_ERROR % (RECOVER_PASSWORD_MANDATORY_FIELDS - set(content.keys()))))
+            return messages.ERROR_JSON % (
+                        messages.MISSING_FIELDS_ERROR % (RECOVER_PASSWORD_MANDATORY_FIELDS - set(content.keys()))), 400
         try:
             self.auth_server.send_recovery_email(content["email"])
         except UnexistentUserError:
@@ -169,8 +175,9 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not NEW_PASSWORD_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % (NEW_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (NEW_PASSWORD_MANDATORY_FIELDS - set(content.keys())) ), 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (NEW_PASSWORD_MANDATORY_FIELDS - set(content.keys()))))
+            return messages.ERROR_JSON % (
+                        messages.MISSING_FIELDS_ERROR % (NEW_PASSWORD_MANDATORY_FIELDS - set(content.keys()))), 400
         try:
             self.auth_server.recover_password(content["email"], content["token"], content["new_password"])
         except UnexistentUserError:
@@ -204,7 +211,7 @@ class Controller:
         try:
             self.auth_server.profile_update(email=email_query, user_token=token,
                                             password=password, fullname=fullname,
-                                            phone_number=phone_number,photo=photo)
+                                            phone_number=phone_number, photo=photo)
         except UnauthorizedUserError:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
@@ -229,11 +236,12 @@ class Controller:
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         content = request.form
         if not UPLOAD_VIDEO_MANDATORY_FIELDS.issubset(content.keys()) or not "video" in request.files:
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys())) ))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys())) ), 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys()))))
+            return messages.ERROR_JSON % (
+                        messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys()))), 400
         title = content["title"]
         location = content["location"]
-        visible = True if content["visible"]=="true" else False
+        visible = True if content["visible"] == "true" else False
         video = request.files['video'].stream
         description = content["description"] if "description" in content else None
         try:
@@ -266,8 +274,8 @@ class Controller:
             user_videos = [data for data in user_videos if data[0]["visible"]]
         for i in range(len(user_videos)):
             user_videos[i][0]["creation_time"] = user_videos[i][0]["creation_time"].isoformat()
-            user_videos[i] = (user_videos[i][0], {k.name: v for k,v in user_videos[i][1].items()})
-        user_videos = [{"video": video_data, "reactions": reaction_data}  for video_data, reaction_data in user_videos]
+            user_videos[i] = (user_videos[i][0], {k.name: v for k, v in user_videos[i][1].items()})
+        user_videos = [{"video": video_data, "reactions": reaction_data} for video_data, reaction_data in user_videos]
         return json.dumps(user_videos), 200
 
     def list_top_videos(self):
@@ -278,11 +286,11 @@ class Controller:
         top_videos_data = self.video_database.list_top_videos()
         user_videos = [data[1]._asdict() for data in top_videos_data]
         user_emails = [data[0] for data in top_videos_data]
-        user_reactions = [{k.name: v for k,v in data[2].items()} for data in top_videos_data]
+        user_reactions = [{k.name: v for k, v in data[2].items()} for data in top_videos_data]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
-        return json.dumps([{"user": u,"video": v, "reactions": r}
-                           for v,u,r in zip(user_videos, user_emails, user_reactions)]), 200
+        return json.dumps([{"user": u, "video": v, "reactions": r}
+                           for v, u, r in zip(user_videos, user_emails, user_reactions)]), 200
 
     @auth.login_required
     def search_videos(self):
@@ -327,7 +335,8 @@ class Controller:
         content = request.get_json()
         if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
             self.logger.debug(messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())))
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         try:
             self.friend_database.create_friend_request(email_token, content["other_user_email"])
@@ -367,7 +376,8 @@ class Controller:
         content = request.get_json()
         if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
             self.logger.debug(messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())))
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         try:
             self.friend_database.accept_friend_request(content["other_user_email"], email_token)
@@ -391,7 +401,8 @@ class Controller:
         content = request.get_json()
         if not FRIEND_REQUEST_MANDATORY_FIELDS.issubset(content.keys()):
             self.logger.debug(messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())))
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        FRIEND_REQUEST_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         try:
             self.friend_database.reject_friend_request(content["other_user_email"], email_token)
@@ -405,7 +416,7 @@ class Controller:
     def user_list_friends(self):
         """
         List friends of an user
-        :return: a json with a success message on success or an error in another case
+        :return: a json with the friends on success or an error in another case
         """
         email_query = request.args.get('email')
         if not email_query:
@@ -418,6 +429,26 @@ class Controller:
         friend_emails = self.friend_database.get_friends(email_query)
         friends = [self.auth_server.profile_query(email) for email in friend_emails]
         return json.dumps(friends), 200
+
+    @auth.login_required
+    def friendship_status_with(self):
+        """
+        Get a friendship status
+        :return: a json on success or an error in another case
+        {'are_friends': bool, 'received_friend_request': bool,
+        'sent_friend_request': bool}
+        """
+        email_query = request.args.get('other')
+        if not email_query:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "other")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other", 400
+        email_token = auth.current_user()[0]
+        response = {'are_friends': self.friend_database.are_friends(email_token, email_query),
+                    'received_friend_request': False, 'sent_friend_request': False}
+        if not response['are_friends']:
+            response['received_friend_request'] = self.friend_database.exists_friend_request(email_query, email_token)
+            response['sent_friend_request'] = self.friend_database.exists_friend_request(email_token, email_query)
+        return json.dumps(response), 200
 
     @auth.login_required
     def video_reaction(self):
@@ -433,7 +464,8 @@ class Controller:
         content = request.get_json()
         if not VIDEO_REACTION_MANDATORY_FIELDS.issubset(content.keys()):
             self.logger.debug(messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_MANDATORY_FIELDS - set(content.keys())))
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_MANDATORY_FIELDS - set(content.keys())), 400
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        VIDEO_REACTION_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         reaction = [react for react in Reaction if react.name == content["reaction"]]
         if len(reaction) != 1:
@@ -456,8 +488,10 @@ class Controller:
             return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
         content = request.get_json()
         if not VIDEO_REACTION_DELETE_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())))
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())), 400
+            self.logger.debug(
+                messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())), 400
         email_token = auth.current_user()[0]
         self.video_database.delete_reaction(email_token, content["target_email"],
                                             content["video_title"])

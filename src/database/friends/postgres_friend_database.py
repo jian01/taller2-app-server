@@ -24,6 +24,12 @@ FROM {}
 WHERE user1 = '%s' AND user2 = '%s'
 """
 
+CHECK_FRIEND_REQUEST_QUERY = """
+SELECT *
+FROM {}
+WHERE "from" = %s AND "to" = %s
+"""
+
 ALL_FRIENDS_QUERY = """
 SELECT user1, user2
 FROM {}
@@ -36,7 +42,7 @@ FROM {}
 WHERE "to" = '%s'
 """
 
-DELETE_FRIEND_QUERY = """
+DELETE_FRIEND_REQUEST_QUERY = """
 DELETE FROM {}
 WHERE "from"=%s AND "to"=%s;
 """
@@ -111,8 +117,8 @@ class PostgresFriendDatabase(FriendDatabase):
             raise UnexistentFriendRequest
         cursor = self.conn.cursor()
         self.safe_query_run(self.conn, cursor,
-                            DELETE_FRIEND_QUERY.format(self.friend_requests_table_name),
-                           (from_user_email, to_user_email))
+                            DELETE_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                            (from_user_email, to_user_email))
         self.conn.commit()
 
         friend_tuple = list(sorted([from_user_email,to_user_email]))
@@ -138,8 +144,8 @@ class PostgresFriendDatabase(FriendDatabase):
             raise UnexistentFriendRequest
         cursor = self.conn.cursor()
         self.safe_query_run(self.conn, cursor,
-                            DELETE_FRIEND_QUERY.format(self.friend_requests_table_name),
-                           (from_user_email, to_user_email))
+                            DELETE_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                            (from_user_email, to_user_email))
         self.conn.commit()
         cursor.close()
 
@@ -185,6 +191,24 @@ class PostgresFriendDatabase(FriendDatabase):
         friends_ordered = tuple(list(sorted([user_email1,user_email2])))
         self.safe_query_run(self.conn, cursor,
                             CHECK_FRIENDS_QUERY.format(self.friends_table_name) % friends_ordered)
+        result = cursor.fetchone()
+        if not result:
+            return False
+        return True
+
+    def exists_friend_request(self, from_user_email: str, to_user_email: str) -> bool:
+        """
+        Check if exists friend request from 'requestor' to 'receiver'
+
+        :param from_user_email: the requestor of the friendship
+        :param to_user_email: the receiver of the request
+        :return: a boolean indicating whether the friend request exists
+        """
+        self.logger.debug("Checking whether %s sent a friend request to %s" % (from_user_email, to_user_email))
+        cursor = self.conn.cursor()
+        self.safe_query_run(self.conn, cursor,
+                            CHECK_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                            (from_user_email, to_user_email))
         result = cursor.fetchone()
         if not result:
             return False
