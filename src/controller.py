@@ -443,12 +443,14 @@ class Controller:
             self.logger.debug(messages.MISSING_FIELDS_ERROR % "other")
             return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other", 400
         email_token = auth.current_user()[0]
-        response = {'are_friends': self.friend_database.are_friends(email_token, email_query),
-                    'received_friend_request': False, 'sent_friend_request': False}
-        if not response['are_friends']:
-            response['received_friend_request'] = self.friend_database.exists_friend_request(email_query, email_token)
-            response['sent_friend_request'] = self.friend_database.exists_friend_request(email_token, email_query)
-        return json.dumps(response), 200
+        response = "no_contact"
+        if self.friend_database.are_friends(email_token, email_query):
+            response = "friends"
+        elif self.friend_database.exists_friend_request(email_query, email_token):
+            response = "received"
+        elif self.friend_database.exists_friend_request(email_token, email_query):
+            response = "sent"
+        return json.dumps({"status": response}), 200
 
     @auth.login_required
     def video_reaction(self):

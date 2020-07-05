@@ -443,6 +443,8 @@ paths:
         - video
       summary: Reacts to a video
       description: Creates a new reaction to a video or updates a previous one
+      security:
+        - bearerAuth: []
       requestBody:
         description: Reaction parameters
         content:
@@ -473,6 +475,8 @@ paths:
         - video
       summary: Deletes a reaction if exists
       description: Deletes a reaction to a video
+      security:
+        - bearerAuth: []
       requestBody:
         description: Reaction parameters
         content:
@@ -502,6 +506,8 @@ paths:
         - friendship
       summary: Get friendship status
       description: Gets a friendship status
+      security:
+        - bearerAuth: []
       parameters:
         - name: email
           in: query
@@ -517,12 +523,8 @@ paths:
               schema:
                 type: object
                 properties:
-                  are_friends:
-                    type: boolean
-                  received_friend_request:
-                    type: boolean
-                  sent_friend_request:
-                    type: boolean
+                  status:
+                    type: string
         400:
           description: Missing fields
           content: {}
