@@ -197,13 +197,6 @@ paths:
         - video
       summary: Upload a video
       description: Uploads a new video
-      parameters:
-        - name: email
-          in: query
-          description: The user name that uploaded the video
-          required: true
-          schema:
-            type: string
       requestBody:
         description: Video data
         content:
@@ -243,6 +236,13 @@ paths:
         - video
       summary: Get users videos
       description: Get users videos
+      parameters:
+        - name: email
+          in: query
+          description: The user name that uploaded the video
+          required: true
+          schema:
+            type: string
       security:
         - bearerAuth: []
       responses:
@@ -437,6 +437,66 @@ paths:
                   video:
                     $ref: '#/components/schemas/Video'
       x-codegen-request-body-name: body
+  /videos/reaction:
+    post:
+      tags:
+        - video
+      summary: Reacts to a video
+      description: Creates a new reaction to a video or updates a previous one
+      requestBody:
+        description: Reaction parameters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_email:
+                  type: string
+                video_title:
+                  type: string
+                reaction:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields, body is not a json or unexistent reaction
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - video
+      summary: Deletes a reaction if exists
+      description: Deletes a reaction to a video
+      requestBody:
+        description: Reaction parameters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_email:
+                  type: string
+                video_title:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields or body is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
+
 components:
   securitySchemes:
     bearerAuth:
