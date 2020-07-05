@@ -65,6 +65,14 @@ class PostgresFriendDatabase(FriendDatabase):
             self.logger.error("Unable to connect to postgres database")
             raise ConnectionError("Unable to connect to postgres database")
 
+    @staticmethod
+    def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
+        try:
+            cursor.execute(query, params)
+        except Exception as err:
+            connection.rollback()
+            raise err
+
     def create_friend_request(self, from_user_email: str,
                               to_user_email: str) -> NoReturn:
         """
@@ -82,12 +90,9 @@ class PostgresFriendDatabase(FriendDatabase):
             raise UsersAlreadyFriendsError
         self.logger.debug("Sending friend request for user with email %s" % from_user_email)
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(NEW_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+        self.safe_query_run(self.conn, cursor,
+                            NEW_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
                            (from_user_email, to_user_email, datetime.datetime.now().isoformat()))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
         self.conn.commit()
         cursor.close()
 
@@ -105,12 +110,9 @@ class PostgresFriendDatabase(FriendDatabase):
         if from_user_email not in self.get_friend_requests(to_user_email):
             raise UnexistentFriendRequest
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(DELETE_FRIEND_QUERY.format(self.friend_requests_table_name),
+        self.safe_query_run(self.conn, cursor,
+                            DELETE_FRIEND_QUERY.format(self.friend_requests_table_name),
                            (from_user_email, to_user_email))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
         self.conn.commit()
 
         friend_tuple = list(sorted([from_user_email,to_user_email]))
@@ -135,12 +137,9 @@ class PostgresFriendDatabase(FriendDatabase):
         if from_user_email not in self.get_friend_requests(to_user_email):
             raise UnexistentFriendRequest
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(DELETE_FRIEND_QUERY.format(self.friend_requests_table_name),
+        self.safe_query_run(self.conn, cursor,
+                            DELETE_FRIEND_QUERY.format(self.friend_requests_table_name),
                            (from_user_email, to_user_email))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
         self.conn.commit()
         cursor.close()
 
@@ -153,11 +152,8 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Getting friend requests for %s" % user_email)
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name) % user_email)
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name) % user_email)
         result = cursor.fetchall()
         return [r[0] for r in result]
 
@@ -170,11 +166,8 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Getting friends for %s" % user_email)
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(ALL_FRIENDS_QUERY.format(self.friends_table_name) % (user_email, user_email))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            ALL_FRIENDS_QUERY.format(self.friends_table_name) % (user_email, user_email))
         result = cursor.fetchall()
         friend_emails = [t[0] for t in result]+[t[1] for t in result]
         return [f for f in friend_emails if f!=user_email]
@@ -190,11 +183,8 @@ class PostgresFriendDatabase(FriendDatabase):
         self.logger.debug("Checking whether %s and %s are friends" % (user_email1, user_email2))
         cursor = self.conn.cursor()
         friends_ordered = tuple(list(sorted([user_email1,user_email2])))
-        try:
-            cursor.execute(CHECK_FRIENDS_QUERY.format(self.friends_table_name) % friends_ordered)
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            CHECK_FRIENDS_QUERY.format(self.friends_table_name) % friends_ordered)
         result = cursor.fetchone()
         if not result:
             return False

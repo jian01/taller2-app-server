@@ -90,11 +90,13 @@ WHERE reactor_email=%s AND target_email=%s AND video_title=%s;
 LIKE_SEARCH_TITLE_ELEMENT = "LOWER(title) LIKE '%{}%'"
 LIKE_SEARCH_DESCRIPTION_ELEMENT = "LOWER(description) LIKE '%{}%'"
 
+
 class PostgresVideoDatabase(VideoDatabase):
     """
     Postgres & Firebase implementation of Database abstraction
     """
     logger = logging.getLogger(__name__)
+
     # TODO: avoid sql injection
     def __init__(self, videos_table_name: str, users_table_name: str,
                  video_reactions_table_name: str,
@@ -113,6 +115,14 @@ class PostgresVideoDatabase(VideoDatabase):
             self.logger.error("Unable to connect to postgres database")
             raise ConnectionError("Unable to connect to postgres database")
 
+    @staticmethod
+    def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
+        try:
+            cursor.execute(query, params)
+        except Exception as err:
+            connection.rollback()
+            raise err
+
     def add_video(self, user_email: str, video_data: VideoData) -> NoReturn:
         """
         Adds a video to the database
@@ -122,14 +132,11 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("Saving video for user with email %s" % user_email)
-        try:
-            cursor.execute(VIDEO_INSERT_QUERY.format(videos_table_names=self.videos_table_name),
-                           (user_email, video_data.title, video_data.creation_time.isoformat(),
-                            video_data.visible, video_data.location, video_data.file_location,
-                            video_data.description))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            VIDEO_INSERT_QUERY.format(videos_table_names=self.videos_table_name),
+                            (user_email, video_data.title, video_data.creation_time.isoformat(),
+                             video_data.visible, video_data.location, video_data.file_location,
+                             video_data.description))
         self.conn.commit()
         cursor.close()
 
@@ -142,18 +149,16 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         self.logger.debug("Listing videos for user with email %s" % user_email)
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(LIST_USER_VIDEOS_QUERY.format(video_with_likes=
-                VIDEO_WITH_LIKES_QUERY.format(videos_table_name=self.videos_table_name,
-                    video_reactions_table_name=self.video_reactions_table_name))
-                           % user_email)
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            LIST_USER_VIDEOS_QUERY.format(video_with_likes=
+                                                          VIDEO_WITH_LIKES_QUERY.format(
+                                                              videos_table_name=self.videos_table_name,
+                                                              video_reactions_table_name=self.video_reactions_table_name))
+                            % user_email)
         result = cursor.fetchall()
         # title, creation_time, visible, location, file_location, description, likes, dislikes
         result = [(VideoData(title=r[0], creation_time=r[1], visible=r[2], location=r[3],
-                            file_location=r[4], description=r[5]),
+                             file_location=r[4], description=r[5]),
                    {Reaction.like: r[6], Reaction.dislike: r[7]})
                   for r in result]
         cursor.close()
@@ -168,20 +173,19 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         self.logger.debug("Listing top videos")
         cursor = self.conn.cursor()
-        try:
-            cursor.execute(TOP_VIDEO_QUERY.format(video_with_likes=
-                                                  VIDEO_WITH_LIKES_QUERY.format(videos_table_name=self.videos_table_name,
-                                                                                video_reactions_table_name=self.video_reactions_table_name),
-                                                  users_table_name=self.users_table_name))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+
+        self.safe_query_run(self.conn, cursor,
+                            TOP_VIDEO_QUERY.format(video_with_likes=
+                                                   VIDEO_WITH_LIKES_QUERY.format(
+                                                       videos_table_name=self.videos_table_name,
+                                                       video_reactions_table_name=self.video_reactions_table_name),
+                                                   users_table_name=self.users_table_name))
         result = cursor.fetchall()
         # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
         result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
                                    file_location=r[8], description=r[9])
                          for r in result]
-        result_emails = [{"email": r[0], "fullname": r[1], "phone_number":r[2],
+        result_emails = [{"email": r[0], "fullname": r[1], "phone_number": r[2],
                           "photo": r[3]} for r in result]
         result_reactions = [{Reaction.like: r[10], Reaction.dislike: r[11]} for r in result]
         cursor.close()
@@ -207,7 +211,6 @@ class PostgresVideoDatabase(VideoDatabase):
                                                                       video_reactions_table_name=video_reactions_table_name)
                                         ) % where_conditions
 
-
     def search_videos(self, search_query: str) -> List[Tuple[Dict, VideoData, Dict[Reaction, int]]]:
         """
         Searches videos with a query
@@ -222,23 +225,19 @@ class PostgresVideoDatabase(VideoDatabase):
         cursor = self.conn.cursor()
         query = self.build_search_query(tokenized_query, self.videos_table_name, self.users_table_name,
                                         self.video_reactions_table_name)
-        try:
-            cursor.execute(query)
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor, query)
         result = cursor.fetchall()
         # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
         result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
                                    file_location=r[8], description=r[9])
                          for r in result]
-        result_emails = [{"email": r[0], "fullname": r[1], "phone_number":r[2],
+        result_emails = [{"email": r[0], "fullname": r[1], "phone_number": r[2],
                           "photo": r[3]} for r in result]
         result_reactions = [{Reaction.like: r[10], Reaction.dislike: r[11]} for r in result]
         cursor.close()
 
         result = []
-        for u, v, r in zip(result_emails,result_videos, result_reactions):
+        for u, v, r in zip(result_emails, result_videos, result_reactions):
             word_count = 0
             desc_count = 0
             tokenized_title = word_tokenize(v.title.lower())
@@ -251,12 +250,12 @@ class PostgresVideoDatabase(VideoDatabase):
                 word_count += len([t for t in bigrams_title if t == b])
             if word_count > 0 or desc_count > 0:
                 result.append((u, v, r, word_count * 0.8 + desc_count * 0.2))
-        result = sorted(result, key=lambda x:x[3],reverse=True)
-        result = [(r[0],r[1],r[2]) for r in result]
+        result = sorted(result, key=lambda x: x[3], reverse=True)
+        result = [(r[0], r[1], r[2]) for r in result]
         return result
 
     def react_video(self, actor_email: str, target_email: str,
-                   video_title: str, reaction: Reaction) -> NoReturn:
+                    video_title: str, reaction: Reaction) -> NoReturn:
         """
         Likes a video
 
@@ -267,12 +266,9 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("User %s reacting to video" % actor_email)
-        try:
-            cursor.execute(REACTION_INSERT_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
-                           (actor_email, target_email, video_title, reaction.value))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            REACTION_INSERT_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
+                            (actor_email, target_email, video_title, reaction.value))
         self.conn.commit()
         cursor.close()
 
@@ -287,11 +283,8 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("Deleting reaction for user with email %s" % actor_email)
-        try:
-            cursor.execute(DELETE_REACTION_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
-                           (actor_email, target_email, video_title))
-        except Exception as err:
-            self.conn.rollback()
-            raise err
+        self.safe_query_run(self.conn, cursor,
+                            DELETE_REACTION_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
+                            (actor_email, target_email, video_title))
         self.conn.commit()
         cursor.close()
