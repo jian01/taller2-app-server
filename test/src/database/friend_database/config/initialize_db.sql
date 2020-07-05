@@ -59,8 +59,31 @@ create table chotuve.videos
 		primary key (user_email, title)
 );
 
+create table chotuve.user_messages
+(
+	id serial,
+	from_user varchar
+		constraint user_messages_users_email_fk
+			references chotuve.users,
+	to_user varchar
+		constraint user_messages_users_email_fk_2
+			references chotuve.users,
+	message varchar,
+    datetime timestamp
+);
+
+create unique index user_messages_id_uindex
+	on chotuve.user_messages (id);
+
+alter table chotuve.user_messages
+	add constraint user_messages_pk
+		primary key (id);
+
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
 VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
 
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
 VALUES ('cafferatagian@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
+
+INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
+VALUES ('asd@asd.com', 'Gianmarco', '1111', 'asd', 'asd123', false);

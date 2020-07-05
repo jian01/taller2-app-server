@@ -1,6 +1,7 @@
 from src.database.friends.postgres_friend_database import PostgresFriendDatabase
 from src.database.friends.exceptions.unexistent_friend_requests import UnexistentFriendRequest
 from src.database.friends.exceptions.users_already_friends_error import UsersAlreadyFriendsError
+from src.database.friends.exceptions.users_are_not_friends_error import UsersAreNotFriendsError
 import pytest
 import psycopg2
 from typing import NamedTuple
@@ -14,7 +15,7 @@ def friend_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "dummy"
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
-    database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"]*6))
+    database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"]*8))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/friend_database/config/initialize_db.sql", "r") as initialize_query:
         cursor = postgresql.cursor()
@@ -24,13 +25,15 @@ def friend_postgres_database(monkeypatch, postgresql):
     database.conn = postgresql
     database.friends_table_name = "chotuve.friends"
     database.friend_requests_table_name = "chotuve.friend_requests"
+    database.user_messages_table_name = "chotuve.user_messages"
+    database.users_table_name = "chotuve.users"
     return database
 
 def test_postgres_connection_error(monkeypatch, friend_postgres_database):
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(1))
     with pytest.raises(ConnectionError):
-        database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"] * 6))
+        database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"] * 8))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
 
 def test_create_friend_request_ok(monkeypatch, friend_postgres_database):
@@ -94,3 +97,64 @@ def test_users_already_friends_when_request(monkeypatch, friend_postgres_databas
     with pytest.raises(UsersAlreadyFriendsError):
         friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
                                                        'cafferatagian@hotmail.com')
+
+def test_send_message_not_friends(monkeypatch, friend_postgres_database):
+    with pytest.raises(UsersAreNotFriendsError):
+        friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                              "Hola")
+
+def test_send_one_message_and_get_conversation(monkeypatch, friend_postgres_database):
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                          "Hola")
+    conv, pages = friend_postgres_database.get_conversation('giancafferata@hotmail.com','cafferatagian@hotmail.com', 2, 0)
+    assert pages == 1
+    assert len(conv) == 1
+    assert conv[0].message == "Hola"
+
+def test_send_messages_and_get_conversation(monkeypatch, friend_postgres_database):
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                          "Hola")
+    friend_postgres_database.send_message('giancafferata@hotmail.com', 'cafferatagian@hotmail.com',
+                                          "todo bien?")
+    friend_postgres_database.send_message('cafferatagian@hotmail.com','giancafferata@hotmail.com',
+                                          "see")
+    conv, pages = friend_postgres_database.get_conversation('giancafferata@hotmail.com','cafferatagian@hotmail.com', 2, 0)
+    assert pages == 2
+    assert len(conv) == 2
+    assert conv[0].message == "see"
+    assert conv[1].message == "todo bien?"
+    conv, pages = friend_postgres_database.get_conversation('giancafferata@hotmail.com','cafferatagian@hotmail.com', 2, 1)
+    assert pages == 2
+    assert len(conv) == 1
+    assert conv[0].message == "Hola"
+
+def test_send_messages_and_get_last_conversations(monkeypatch, friend_postgres_database):
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'asd@asd.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'asd@asd.com')
+    friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                          "Hola")
+    friend_postgres_database.send_message('giancafferata@hotmail.com', 'cafferatagian@hotmail.com',
+                                          "todo bien?")
+    friend_postgres_database.send_message('cafferatagian@hotmail.com','giancafferata@hotmail.com',
+                                          "see")
+    friend_postgres_database.send_message('giancafferata@hotmail.com','asd@asd.com',
+                                          "Hola")
+    user_data, message_data = friend_postgres_database.get_conversations('giancafferata@hotmail.com')
+    assert user_data[0]["email"] == 'asd@asd.com'
+    assert user_data[1]["email"] == 'cafferatagian@hotmail.com'
+    assert message_data[0].message == 'Hola'
+    assert message_data[1].message == 'see'
