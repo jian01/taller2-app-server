@@ -1,6 +1,15 @@
-from typing import NoReturn, List, Optional, NamedTuple, Tuple
+from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from abc import abstractmethod
 from datetime import datetime
+from enum import Enum
+
+
+class Reaction(Enum):
+    """
+    Reaction type enum
+    """
+    like = 1
+    dislike = 2
 
 class VideoData(NamedTuple):
     """
@@ -35,41 +44,52 @@ class VideoDatabase:
         """
 
     @abstractmethod
-    def list_user_videos(self, user_email: str) -> List[VideoData]:
+    def list_user_videos(self, user_email: str) -> List[Tuple[VideoData, Dict[Reaction, int]]]:
         """
         Get all the user videos
 
         :param user_email: the user's email
-        :return: a list video data
+        :return: a list (video data, reactions counts)
         """
 
     @abstractmethod
-    def list_top_videos(self):
+    def list_top_videos(self) -> List[Tuple[Dict, VideoData, Dict[Reaction, int]]]:
         """
         Get top videos
 
-        :return: a list of (user data, video data)
+        :return: a list of (user data, video data, reactions counts)
         """
 
     @abstractmethod
-    def search_videos(self, search_query: str):
+    def search_videos(self, search_query: str) -> List[Tuple[Dict, VideoData, Dict[Reaction, int]]]:
         """
         Searches videos with a query
 
         :param search_query: the query to search
-        :return: a list of (user data, video data)
+        :return: a list of (user data, video data, reactions counts)
         """
 
     @abstractmethod
-    def like_video(self, actor_email: str, target_email: str,
-                   video_title: str) -> NoReturn:
+    def react_video(self, actor_email: str, target_email: str,
+                   video_title: str, reaction: Reaction) -> NoReturn:
         """
         Likes a video
 
         :param actor_email: the liker of the video
         :param target_email: the email of the owner of the video
         :param video_title: the title of the video
-        :return:
+        :param reaction: the type of reaction
+        """
+
+    @abstractmethod
+    def delete_reaction(self, actor_email: str, target_email: str,
+                        video_title: str) -> NoReturn:
+        """
+        Deletes video reaction
+
+        :param actor_email: the liker of the video
+        :param target_email: the email of the owner of the video
+        :param video_title: the title of the video
         """
 
     @classmethod

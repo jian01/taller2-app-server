@@ -149,4 +149,18 @@ create table chotuve.videos
 	constraint videos_pk
 		primary key (user_email, title)
 );
+
+create table chotuve.video_reactions
+(
+	reactor_email varchar
+		constraint video_reactions_users_email_fk
+			references chotuve.users,
+	target_email varchar,
+	video_title varchar,
+	reaction_type int,
+	constraint video_reactions_pk
+		primary key (reactor_email, target_email, video_title),
+	constraint video_reactions_videos_user_email_title_fk
+		foreign key (target_email, video_title) references chotuve.videos
+);
 ```

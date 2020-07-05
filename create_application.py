@@ -62,6 +62,10 @@ def create_application_with_controller(controller: Controller):
                      controller.list_top_videos, methods=["GET"])
     app.add_url_rule('/videos/search', 'search_videos',
                      controller.search_videos, methods=["GET"])
+    app.add_url_rule('/videos/react', 'video_reaction',
+                     controller.video_reaction, methods=["POST"])
+    app.add_url_rule('/videos/react', 'video_reaction_delete',
+                     controller.video_reaction_delete, methods=["DELETE"])
 
     app.add_url_rule('/user/friend_request', 'user_send_friend_request',
                      controller.user_send_friend_request, methods=["POST"])

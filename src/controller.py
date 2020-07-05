@@ -14,7 +14,7 @@ from src.services.exceptions.invalid_register_field_error import InvalidRegister
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.services.exceptions.invalid_video_format_error import InvalidVideoFormatError
-from src.database.videos.video_database import VideoDatabase, VideoData
+from src.database.videos.video_database import VideoDatabase, VideoData, Reaction
 from src.database.friends.friend_database import FriendDatabase
 from src.database.friends.exceptions.users_already_friends_error import UsersAlreadyFriendsError
 from src.database.friends.exceptions.unexistent_friend_requests import UnexistentFriendRequest
@@ -33,6 +33,8 @@ NEW_PASSWORD_MANDATORY_FIELDS = {"email", "new_password", "token"}
 USERS_REGISTER_MANDATORY_FIELDS = {"email", "password", "phone_number", "fullname"}
 UPLOAD_VIDEO_MANDATORY_FIELDS = {"title", "location", "visible"}
 FRIEND_REQUEST_MANDATORY_FIELDS = {"other_user_email"}
+VIDEO_REACTION_MANDATORY_FIELDS = {"target_email", "video_title", "reaction"}
+VIDEO_REACTION_DELETE_MANDATORY_FIELDS = {"target_email", "video_title"}
 
 class Controller:
     logger = logging.getLogger(__name__)
@@ -259,11 +261,13 @@ class Controller:
             return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
         user_videos = self.video_database.list_user_videos(email_query)
-        user_videos = [video_data._asdict() for video_data in user_videos]
+        user_videos = [(video_data._asdict(), reaction_data) for video_data, reaction_data in user_videos]
         if email_query != email_token and not self.friend_database.are_friends(email_query, email_token):
-            user_videos = [video_data for video_data in user_videos if video_data["visible"]]
+            user_videos = [data for data in user_videos if data[0]["visible"]]
         for i in range(len(user_videos)):
-            user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
+            user_videos[i][0]["creation_time"] = user_videos[i][0]["creation_time"].isoformat()
+            user_videos[i] = (user_videos[i][0], {k.name: v for k,v in user_videos[i][1].items()})
+        user_videos = [{"video": video_data, "reactions": reaction_data}  for video_data, reaction_data in user_videos]
         return json.dumps(user_videos), 200
 
     def list_top_videos(self):
@@ -274,9 +278,11 @@ class Controller:
         top_videos_data = self.video_database.list_top_videos()
         user_videos = [data[1]._asdict() for data in top_videos_data]
         user_emails = [data[0] for data in top_videos_data]
+        user_reactions = [{k.name: v for k,v in data[2].items()} for data in top_videos_data]
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
-        return json.dumps([{"user": u,"video": v} for v,u in zip(user_videos, user_emails)]), 200
+        return json.dumps([{"user": u,"video": v, "reactions": r}
+                           for v,u,r in zip(user_videos, user_emails, user_reactions)]), 200
 
     @auth.login_required
     def search_videos(self):
@@ -291,17 +297,21 @@ class Controller:
         videos_data = self.video_database.search_videos(query)
         user_videos = [data[1]._asdict() for data in videos_data]
         user_emails = [data[0] for data in videos_data]
+        user_reactions = [{k.name: v for k, v in data[2].items()} for data in videos_data]
 
         email_token = auth.current_user()[0]
         filtered_videos = []
         filtered_users = []
-        for v, u in zip(user_videos, user_emails):
+        filtered_reactions = []
+        for v, u, r in zip(user_videos, user_emails, user_reactions):
             if v["visible"] or (u["email"] == email_token or self.friend_database.are_friends(u["email"], email_token)):
                 filtered_videos.append(v)
                 filtered_users.append(u)
+                filtered_reactions.append(r)
         for i in range(len(user_videos)):
             user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
-        return json.dumps([{"user": u,"video": v} for v,u in zip(filtered_videos, filtered_users)]), 200
+        return json.dumps([{"user": u, "video": v, "reactions": r}
+                           for v, u, r in zip(filtered_videos, filtered_users, filtered_reactions)]), 200
 
     @auth.login_required
     def user_send_friend_request(self):
@@ -408,3 +418,47 @@ class Controller:
         friend_emails = self.friend_database.get_friends(email_query)
         friends = [self.auth_server.profile_query(email) for email in friend_emails]
         return json.dumps(friends), 200
+
+    @auth.login_required
+    def video_reaction(self):
+        """
+        Reacts a video
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not VIDEO_REACTION_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_MANDATORY_FIELDS - set(content.keys())), 400
+        email_token = auth.current_user()[0]
+        reaction = [react for react in Reaction if react.name == content["reaction"]]
+        if len(reaction) != 1:
+            self.logger.debug(messages.UNEXISTENT_REACTION % content["reaction"])
+            return messages.ERROR_JSON % messages.UNEXISTENT_REACTION % content["reaction"], 400
+        self.video_database.react_video(email_token, content["target_email"],
+                                        content["video_title"], reaction[0])
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def video_reaction_delete(self):
+        """
+        Deletes a reaction
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not VIDEO_REACTION_DELETE_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())), 400
+        email_token = auth.current_user()[0]
+        self.video_database.delete_reaction(email_token, content["target_email"],
+                                            content["video_title"])
+        return messages.SUCCESS_JSON, 200

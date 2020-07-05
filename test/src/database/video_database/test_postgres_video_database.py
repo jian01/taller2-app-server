@@ -1,5 +1,5 @@
 from src.database.videos.postgres_video_database import PostgresVideoDatabase
-from src.database.videos.video_database import VideoData
+from src.database.videos.video_database import VideoData, Reaction
 import datetime
 import pytest
 import psycopg2
@@ -24,7 +24,7 @@ def video_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "dummy"
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
-    database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"]*6))
+    database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"]*7))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/video_database/config/initialize_db.sql", "r") as initialize_query:
         cursor = postgresql.cursor()
@@ -34,28 +34,29 @@ def video_postgres_database(monkeypatch, postgresql):
     database.conn = postgresql
     database.videos_table_name = "chotuve.videos"
     database.users_table_name = "chotuve.users"
+    database.video_reactions_table_name = "chotuve.video_reactions"
     return database
 
 def test_postgres_connection_error(monkeypatch, video_postgres_database):
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(1))
     with pytest.raises(ConnectionError):
-        database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"] * 6))
+        database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"] * 7))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
 
 def test_add_video_and_query(monkeypatch, video_postgres_database):
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 1
-    assert videos[0].title == "Titulo"
+    assert videos[0][0].title == "Titulo"
 
 def test_add_two_videos_and_query(monkeypatch, video_postgres_database):
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
     video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data2)
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 2
-    assert videos[0].title == "Titulo2"
-    assert videos[1].title == "Titulo"
+    assert videos[0][0].title == "Titulo2"
+    assert videos[1][0].title == "Titulo"
 
 def test_add_video_and_get_top(monkeypatch, video_postgres_database):
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
@@ -80,3 +81,29 @@ def test_add_two_videos_and_search(monkeypatch, video_postgres_database):
     search_result = video_postgres_database.search_videos("coso titulo")
     assert len(search_result) == 2
     assert search_result[0][1].title == "Titulo"
+
+def test_react_video(monkeypatch, video_postgres_database):
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 1
+    assert videos[0][1][Reaction.like] == 0
+    assert videos[0][1][Reaction.dislike] == 0
+    video_postgres_database.react_video('cafferatagian@hotmail.com', 'giancafferata@hotmail.com',
+                                        'Titulo', Reaction.like)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 1
+    assert videos[0][1][Reaction.like] == 1
+    assert videos[0][1][Reaction.dislike] == 0
+    video_postgres_database.react_video('cafferatagian@hotmail.com', 'giancafferata@hotmail.com',
+                                        'Titulo', Reaction.dislike)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 1
+    assert videos[0][1][Reaction.like] == 0
+    assert videos[0][1][Reaction.dislike] == 1
+    video_postgres_database.delete_reaction('cafferatagian@hotmail.com',
+                                            'giancafferata@hotmail.com',
+                                            'Titulo')
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 1
+    assert videos[0][1][Reaction.like] == 0
+    assert videos[0][1][Reaction.dislike] == 0
