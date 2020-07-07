@@ -37,6 +37,7 @@ FRIEND_REQUEST_MANDATORY_FIELDS = {"other_user_email"}
 VIDEO_REACTION_MANDATORY_FIELDS = {"target_email", "video_title", "reaction"}
 VIDEO_REACTION_DELETE_MANDATORY_FIELDS = {"target_email", "video_title"}
 SEND_MESSAGE_MANDATORY_FIELDS = {"other_user_email", "message"}
+VIDEO_COMMENT_MANDATORY_FIELDS = {"target_email", "video_title", "comment"}
 
 
 class Controller:
@@ -567,4 +568,42 @@ class Controller:
         response = []
         for i in range(len(last_messages)):
             response.append({"user": user_data[i], "last_message": last_messages[i]})
+        return json.dumps(response), 200
+
+    @auth.login_required
+    def comment_video(self):
+        """
+        Comment a video
+        :return: a json with a success message on success or an error in another case
+        """
+        try:
+            assert request.is_json
+        except AssertionError:
+            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
+            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
+        content = request.get_json()
+        if not VIDEO_COMMENT_MANDATORY_FIELDS.issubset(content.keys()):
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % (VIDEO_COMMENT_MANDATORY_FIELDS - set(content.keys())))
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
+                        VIDEO_REACTION_MANDATORY_FIELDS - set(content.keys())), 400
+        email_token = auth.current_user()[0]
+        self.video_database.comment_video(email_token, content["target_email"],
+                                          content["video_title"], content["comment"])
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
+    def get_video_comments(self):
+        """
+        Get the comments for one video
+        :return: a json with [{user data, comment}] or an error in other case
+        """
+        other_user_email = request.args.get('other_user_email')
+        video_title = request.args.get('video_title')
+        if not other_user_email or not video_title:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "query params")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "query params", 400
+        users_data, comments = self.video_database.get_comments(other_user_email, video_title)
+        response = [{"user": u,
+                     "comment": {"content":c.content, "timestamp": c.timestamp.isoformat()}}
+                    for u,c in zip(users_data, comments)]
         return json.dumps(response), 200

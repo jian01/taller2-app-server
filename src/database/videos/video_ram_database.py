@@ -1,7 +1,7 @@
 from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from abc import abstractmethod
 from datetime import datetime
-from src.database.videos.video_database import VideoData, VideoDatabase, Reaction
+from src.database.videos.video_database import VideoData, VideoDatabase, Reaction, Comment
 from nltk import word_tokenize
 
 
@@ -15,6 +15,7 @@ class RamVideoDatabase(VideoDatabase):
     def __init__(self):
         self.videos_by_user = {}
         self.reactions = {}
+        self.comments = {}
 
     def add_video(self, user_email: str, video_data: VideoData) -> NoReturn:
         """
@@ -125,3 +126,36 @@ class RamVideoDatabase(VideoDatabase):
         if target_email not in self.reactions or video_title not in self.reactions[target_email]:
             return
         self.reactions[target_email][video_title] = [r for r in self.reactions[target_email][video_title] if r[0] != actor_email]
+
+    @abstractmethod
+    def comment_video(self, actor_email: str, target_email: str, video_title: str,
+                      comment: str) -> NoReturn:
+        """
+        Comments a video
+
+        :param actor_email: the email of the comment's author
+        :param target_email: the email of the owner of the video
+        :param video_title: the video title
+        :param comment: the comment
+        """
+        if not (target_email, video_title) in self.comments:
+            self.comments[(target_email, video_title)] = []
+        self.comments[(target_email, video_title)].append((actor_email,
+                                                           Comment(content=comment,
+                                                                   timestamp=datetime.now())))
+
+    @abstractmethod
+    def get_comments(self, target_email: str, video_title: str) -> Tuple[List[Dict], List[Comment]]:
+        """
+        Get all the comments for a video
+
+        :param target_email: the email of the owner of the video
+        :param video_title: the title of the video
+        :return: a tuple of (list of user data, list of comments)
+        """
+        comment_tuples = []
+        if (target_email, video_title) in self.comments:
+            comment_tuples = list(reversed(self.comments[(target_email, video_title)]))
+        user_data = [{"email": t[0]} for t in comment_tuples]
+        comment_data = [t[1] for t in comment_tuples]
+        return user_data, comment_data

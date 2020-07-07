@@ -47,8 +47,26 @@ create table chotuve.video_reactions
 		foreign key (target_email, video_title) references chotuve.videos
 );
 
+create table chotuve.video_comments
+(
+	author_email varchar
+		constraint video_comments_users_email_fk
+			references chotuve.users,
+	video_owner_email varchar,
+	video_title varchar,
+	comment varchar,
+	datetime timestamp,
+	constraint video_comments_pk
+		primary key (author_email, video_owner_email, video_title, comment, datetime),
+	constraint video_comments_videos_user_email_title_fk
+		foreign key (video_owner_email, video_title) references chotuve.videos
+);
+
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
 VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
 
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
 VALUES ('cafferatagian@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
+
+INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
+VALUES ('asd@asd.com', 'Gianmarco', '1111', 'asd', 'asd123', false);

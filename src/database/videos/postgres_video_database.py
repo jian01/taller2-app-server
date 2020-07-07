@@ -1,12 +1,9 @@
 import psycopg2
 from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
-from src.database.videos.video_database import VideoData, VideoDatabase, Reaction
+from src.database.videos.video_database import VideoData, VideoDatabase, Reaction, Comment
 import logging
 import os
-import json
-import requests
-import math
-import datetime
+from datetime import datetime
 from nltk import word_tokenize
 
 VIDEO_WITH_LIKES_QUERY = '''
@@ -87,6 +84,19 @@ DELETE FROM {video_reactions_table_name}
 WHERE reactor_email=%s AND target_email=%s AND video_title=%s;
 """
 
+COMMENT_VIDEO_QUERY = """
+INSERT INTO {video_comments_table_name} (author_email, video_owner_email, video_title, comment, datetime)
+VALUES (%s, %s, %s, %s, %s)
+"""
+
+GET_COMMENTS_QUERY = """
+SELECT u.email, u.fullname, u.phone_number, u.photo, vc.comment, vc.datetime
+FROM {video_comments_table_name} vc
+INNER JOIN {users_table_name} as u
+ON u.email = vc.author_email
+WHERE vc.video_owner_email = %s AND vc.video_title = %s
+"""
+
 LIKE_SEARCH_TITLE_ELEMENT = "LOWER(title) LIKE '%{}%'"
 LIKE_SEARCH_DESCRIPTION_ELEMENT = "LOWER(description) LIKE '%{}%'"
 
@@ -99,13 +109,14 @@ class PostgresVideoDatabase(VideoDatabase):
 
     # TODO: avoid sql injection
     def __init__(self, videos_table_name: str, users_table_name: str,
-                 video_reactions_table_name: str,
+                 video_reactions_table_name: str, video_comments_table_name: str,
                  postgr_host_env_name: str, postgr_user_env_name: str,
                  postgr_pass_env_name: str, postgr_database_env_name: str):
 
         self.videos_table_name = videos_table_name
         self.users_table_name = users_table_name
         self.video_reactions_table_name = video_reactions_table_name
+        self.video_comments_table_name = video_comments_table_name
         self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
                                      password=os.environ[postgr_pass_env_name],
                                      database=os.environ[postgr_database_env_name])
@@ -288,3 +299,45 @@ class PostgresVideoDatabase(VideoDatabase):
                             (actor_email, target_email, video_title))
         self.conn.commit()
         cursor.close()
+
+    def comment_video(self, actor_email: str, target_email: str, video_title: str,
+                      comment: str) -> NoReturn:
+        """
+        Comments a video
+
+        :param actor_email: the email of the comment's author
+        :param target_email: the email of the owner of the video
+        :param video_title: the video title
+        :param comment: the comment
+        """
+        cursor = self.conn.cursor()
+        self.logger.debug("User %s commenting video" % actor_email)
+        self.safe_query_run(self.conn, cursor,
+                            COMMENT_VIDEO_QUERY.format(video_comments_table_name=self.video_comments_table_name),
+                            (actor_email, target_email, video_title, comment, datetime.now().isoformat()))
+        self.conn.commit()
+        cursor.close()
+
+    def get_comments(self, target_email: str, video_title: str) -> Tuple[List[Dict], List[Comment]]:
+        """
+        Get all the comments for a video
+
+        :param target_email: the email of the owner of the video
+        :param video_title: the title of the video
+        :return: a tuple of (list of user data, list of comments)
+        """
+        self.logger.debug("Listing comments for %s video of %s" % (target_email, video_title))
+        cursor = self.conn.cursor()
+
+        self.safe_query_run(self.conn, cursor,
+                            GET_COMMENTS_QUERY.format(
+                                video_comments_table_name=self.video_comments_table_name,
+                                users_table_name=self.users_table_name),
+                            (target_email, video_title))
+        result = cursor.fetchall()
+        # u.email, u.fullname, u.phone_number, u.photo, vc.comment, vc.datetime
+        result_comments = [Comment(content=r[4],timestamp=r[5]) for r in result]
+        result_users = [{"email": r[0], "fullname": r[1], "phone_number": r[2],
+                         "photo": r[3]} for r in result]
+        cursor.close()
+        return result_users, result_comments

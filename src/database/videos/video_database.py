@@ -1,7 +1,7 @@
 from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from abc import abstractmethod
-from datetime import datetime
 from enum import Enum
+from datetime import datetime
 
 
 class Reaction(Enum):
@@ -10,6 +10,15 @@ class Reaction(Enum):
     """
     like = 1
     dislike = 2
+
+
+class Comment(NamedTuple):
+    """
+    Comment named tuple
+    """
+    content: str
+    timestamp: datetime
+
 
 class VideoData(NamedTuple):
     """
@@ -90,6 +99,28 @@ class VideoDatabase:
         :param actor_email: the liker of the video
         :param target_email: the email of the owner of the video
         :param video_title: the title of the video
+        """
+
+    @abstractmethod
+    def comment_video(self, actor_email: str, target_email: str, video_title: str,
+                      comment: str) -> NoReturn:
+        """
+        Comments a video
+
+        :param actor_email: the email of the comment's author
+        :param target_email: the email of the owner of the video
+        :param video_title: the video title
+        :param comment: the comment
+        """
+
+    @abstractmethod
+    def get_comments(self, target_email: str, video_title: str) -> Tuple[List[Dict], List[Comment]]:
+        """
+        Get all the comments for a video
+
+        :param target_email: the email of the owner of the video
+        :param video_title: the title of the video
+        :return: a tuple of (list of user data, list of comments)
         """
 
     @classmethod

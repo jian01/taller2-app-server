@@ -66,6 +66,11 @@ def create_application_with_controller(controller: Controller):
                      controller.video_reaction, methods=["POST"])
     app.add_url_rule('/videos/reaction', 'video_reaction_delete',
                      controller.video_reaction_delete, methods=["DELETE"])
+    app.add_url_rule('/videos/comment', 'comment_video',
+                     controller.comment_video, methods=["POST"])
+    app.add_url_rule('/videos/comments', 'get_video_comments',
+                     controller.get_video_comments, methods=["GET"])
+
 
     app.add_url_rule('/user/friend_request', 'user_send_friend_request',
                      controller.user_send_friend_request, methods=["POST"])

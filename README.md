@@ -183,4 +183,20 @@ create unique index user_messages_id_uindex
 alter table chotuve.user_messages
 	add constraint user_messages_pk
 		primary key (id);
+
+create table chotuve.video_comments
+(
+	author_email varchar
+		constraint video_comments_users_email_fk
+			references chotuve.users,
+	video_owner_email varchar,
+	video_title varchar,
+	comment varchar,
+	datetime timestamp,
+	constraint video_comments_pk
+		primary key (author_email, video_owner_email, video_title, comment, datetime),
+	constraint video_comments_videos_user_email_title_fk
+		foreign key (video_owner_email, video_title) references chotuve.videos
+);
+
 ```

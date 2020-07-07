@@ -17,6 +17,7 @@ video_databases:
     videos_table_name: "chotuve.videos"
     users_table_name: "chotuve.users"
     video_reactions_table_name: "chotuve.video_reactions"
+    video_comments_table_name: "chotuve.video_comments"
     postgr_host_env_name: "POSTGRES_HOST"
     postgr_user_env_name: "POSTGRES_USER"
     postgr_pass_env_name: "POSTGRES_PASSWORD"

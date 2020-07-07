@@ -24,7 +24,7 @@ def video_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "dummy"
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
-    database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"]*7))
+    database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"]*8))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/video_database/config/initialize_db.sql", "r") as initialize_query:
         cursor = postgresql.cursor()
@@ -35,13 +35,14 @@ def video_postgres_database(monkeypatch, postgresql):
     database.videos_table_name = "chotuve.videos"
     database.users_table_name = "chotuve.users"
     database.video_reactions_table_name = "chotuve.video_reactions"
+    database.video_comments_table_name = "chotuve.video_comments"
     return database
 
 def test_postgres_connection_error(monkeypatch, video_postgres_database):
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(1))
     with pytest.raises(ConnectionError):
-        database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"] * 7))
+        database = PostgresVideoDatabase(*(["DUMB_ENV_NAME"] * 8))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
 
 def test_add_video_and_query(monkeypatch, video_postgres_database):
@@ -107,3 +108,25 @@ def test_react_video(monkeypatch, video_postgres_database):
     assert len(videos) == 1
     assert videos[0][1][Reaction.like] == 0
     assert videos[0][1][Reaction.dislike] == 0
+
+def test_comment_video_and_query(monkeypatch, video_postgres_database):
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data2)
+    video_postgres_database.comment_video('cafferatagian@hotmail.com', 'giancafferata@hotmail.com',
+                                          fake_video_data.title, "Comentario 1")
+    video_postgres_database.comment_video('asd@asd.com', 'giancafferata@hotmail.com',
+                                          fake_video_data2.title, "Comentario 2")
+    video_postgres_database.comment_video('asd@asd.com', 'giancafferata@hotmail.com',
+                                          fake_video_data.title, "Comentario 3")
+    users1, comments1 = video_postgres_database.get_comments('giancafferata@hotmail.com',
+                                                             fake_video_data.title)
+    assert len(users1) == 2
+    assert users1[0]["email"] == 'asd@asd.com'
+    assert users1[1]["email"] == 'cafferatagian@hotmail.com'
+    assert comments1[0].content == "Comentario 3"
+    assert comments1[1].content == "Comentario 1"
+    users2, comments2 = video_postgres_database.get_comments('giancafferata@hotmail.com',
+                                                             fake_video_data2.title)
+    assert len(users2) == 1
+    assert users2[0]["email"] == 'asd@asd.com'
+    assert comments2[0].content == "Comentario 2"
