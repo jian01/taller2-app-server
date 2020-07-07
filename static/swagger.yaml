@@ -14,6 +14,8 @@ tags:
   description: Operations over user's friendships
 - name: messages
   description: Operations with user's private messages
+- name: comments
+  description: Operations with user's comments
 paths:
   /user:
     get:
@@ -571,7 +573,7 @@ paths:
       security:
         - bearerAuth: []
       requestBody:
-        description: Reaction parameters
+        description: Message parameters
         content:
           application/json:
             schema:
@@ -697,7 +699,83 @@ paths:
           description: No more messages
           content: {}
       x-codegen-request-body-name: body
-
+  /videos/comment:
+    post:
+      tags:
+        - comments
+      summary: Comment a video
+      description: Comment a video
+      security:
+        - bearerAuth: []
+      requestBody:
+        description: Comment parameters
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_email:
+                  type: string
+                video_title:
+                  type: string
+                comment:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields or body is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
+  /videos/comments:
+    get:
+      tags:
+        - comments
+      summary: Get comments in a video
+      description: Get user data and comments fot a video
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: other_user_email
+          in: query
+          description: The owner of the video
+          required: true
+          schema:
+            type: string
+        - name: video_title
+          in: query
+          description: The title of the video
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user:
+                      $ref: '#/components/schemas/User'
+                    comment:
+                      type: object
+                      properties:
+                        content:
+                          type: string
+                        timestamp:
+                          type: string
+        400:
+          description: Missing fields
+          content: {}
+      x-codegen-request-body-name: body
 components:
   securitySchemes:
     bearerAuth:
