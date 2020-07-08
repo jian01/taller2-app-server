@@ -100,6 +100,18 @@ class VideoDatabase:
         """
 
     @abstractmethod
+    def get_video_reaction(self, actor_email: str, target_email: str, video_title: str) -> Optional[Reaction]:
+        """
+        Gets the reaction of the user
+        If there is no reaction returns None
+
+        :param actor_email: the email of the user that reacted
+        :param target_email: the owner of the video
+        :param video_title: the video title
+        :return: a reaction or None
+        """
+
+    @abstractmethod
     def delete_reaction(self, actor_email: str, target_email: str,
                         video_title: str) -> NoReturn:
         """

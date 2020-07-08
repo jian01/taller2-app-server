@@ -100,8 +100,18 @@ def test_react_video(monkeypatch, video_postgres_database):
     assert len(videos) == 1
     assert videos[0][1][Reaction.like] == 0
     assert videos[0][1][Reaction.dislike] == 0
+
+    reaction = video_postgres_database.get_video_reaction('cafferatagian@hotmail.com',
+                                                          'giancafferata@hotmail.com', 'Titulo')
+    assert not reaction
+
     video_postgres_database.react_video('cafferatagian@hotmail.com', 'giancafferata@hotmail.com',
                                         'Titulo', Reaction.like)
+
+    reaction = video_postgres_database.get_video_reaction('cafferatagian@hotmail.com',
+                                                          'giancafferata@hotmail.com', 'Titulo')
+    assert reaction.name == "like"
+
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 1
     assert videos[0][1][Reaction.like] == 1

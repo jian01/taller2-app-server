@@ -125,6 +125,24 @@ class RamVideoDatabase(VideoDatabase):
             self.reactions[target_email][video_title] = []
         self.reactions[target_email][video_title].append((actor_email, reaction))
 
+    def get_video_reaction(self, actor_email: str, target_email: str, video_title: str) -> Optional[Reaction]:
+        """
+        Gets the reaction of the user
+        If there is no reaction returns None
+
+        :param actor_email: the email of the user that reacted
+        :param target_email: the owner of the video
+        :param video_title: the video title
+        :return: a reaction or None
+        """
+        if target_email not in self.reactions or video_title not in self.reactions[target_email]:
+            return None
+        reaction = [r for a, r in self.reactions[target_email][video_title] if a == actor_email]
+        if not reaction:
+            return None
+        else:
+            return reaction[0]
+
     def delete_reaction(self, actor_email: str, target_email: str,
                         video_title: str) -> NoReturn:
         """

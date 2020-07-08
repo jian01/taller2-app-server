@@ -330,6 +330,14 @@ class TestVideoEndpoints(unittest.TestCase):
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
+    def test_get_video_reaction_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            response = c.get('/videos/reaction', query_string={"target_email": "asd@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
     def test_video_reaction_ok(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         MediaServer.upload_video = MagicMock(return_value="")
@@ -361,11 +369,23 @@ class TestVideoEndpoints(unittest.TestCase):
 
             AuthServer.get_logged_email = MagicMock(return_value="gian2@asd.com")
 
+            response = c.get('/videos/reaction', query_string={"target_email": "asd@asd.com",
+                                                               "video_title": "Hola"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json.loads(response.data)["reaction"], None)
+
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
                                                    "video_title": "Hola",
                                                    "reaction": "like"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
+
+            response = c.get('/videos/reaction', query_string={"target_email": "asd@asd.com",
+                                                               "video_title": "Hola"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json.loads(response.data)["reaction"], "like")
 
             response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
                              headers={"Authorization": "Bearer %s" % "asd123"})

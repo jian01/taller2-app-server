@@ -460,6 +460,23 @@ class Controller:
         return json.dumps({"status": response}), 200
 
     @auth.login_required
+    def video_reaction_get(self):
+        """
+        Gets the reaction of a user on a video
+        :return: a json containing the reaction or an error in other case
+        """
+        target_email = request.args.get('target_email')
+        video_title = request.args.get('video_title')
+        if not target_email or not video_title:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "Query params")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "Query params", 400
+        email_token = auth.current_user()[0]
+        reaction = self.video_database.get_video_reaction(email_token, target_email, video_title)
+        if reaction:
+            reaction = reaction.name
+        return json.dumps({"reaction": reaction}), 200
+
+    @auth.login_required
     def video_reaction(self):
         """
         Reacts a video

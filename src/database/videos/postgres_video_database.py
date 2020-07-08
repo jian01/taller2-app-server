@@ -84,6 +84,12 @@ ON CONFLICT (reactor_email, target_email, video_title) DO UPDATE
   SET reaction_type = excluded.reaction_type;
 """
 
+REACTION_SEARCH_QUERY = """
+SELECT reaction_type
+FROM {video_reactions_table_name}
+VALUES WHERE reactor_email = %s AND target_email = %s AND video_title = %s
+"""
+
 DELETE_REACTION_QUERY = """
 DELETE FROM {video_reactions_table_name}
 WHERE reactor_email=%s AND target_email=%s AND video_title=%s;
@@ -302,6 +308,26 @@ class PostgresVideoDatabase(VideoDatabase):
                             (actor_email, target_email, video_title, reaction.value))
         self.conn.commit()
         cursor.close()
+
+    def get_video_reaction(self, actor_email: str, target_email: str, video_title: str) -> Optional[Reaction]:
+        """
+        Gets the reaction of the user
+        If there is no reaction returns None
+
+        :param actor_email: the email of the user that reacted
+        :param target_email: the owner of the video
+        :param video_title: the video title
+        :return: a reaction or None
+        """
+        cursor = self.conn.cursor()
+        self.safe_query_run(self.conn, cursor,
+                            REACTION_SEARCH_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
+                            (actor_email, target_email, video_title))
+        reaction = cursor.fetchone()
+        if not reaction:
+            return None
+        else:
+            return [react for react in Reaction if react.value == reaction[0]][0]
 
     def delete_reaction(self, actor_email: str, target_email: str,
                         video_title: str) -> NoReturn:
