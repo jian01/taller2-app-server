@@ -495,6 +495,39 @@ paths:
                     $ref: '#/components/schemas/Video'
       x-codegen-request-body-name: body
   /videos/reaction:
+    get:
+      tags:
+        - video
+      summary: Get my reaction to a video
+      description: Get my reaction to a video
+      parameters:
+        - name: target_email
+          in: query
+          description: The email of the owner of the video
+          required: true
+          schema:
+            type: string
+        - name: video_title
+          in: query
+          description: The title of the video
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reaction:
+                    type: string
+        400:
+          description: Missing fields
+          content: {}
     post:
       tags:
         - video
