@@ -10,6 +10,7 @@ from src.services.exceptions.invalid_credentials_error import InvalidCredentials
 from src.services.exceptions.user_already_registered_error import UserAlreadyRegisteredError
 from src.services.exceptions.invalid_login_token_error import InvalidLoginTokenError
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
+from src.services.exceptions.unexistent_video_error import UnexistentVideoError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
@@ -198,30 +199,20 @@ class Controller:
         Handles updating a user's profile
         :return: a json with a success message on success or an error in another case
         """
-        email_query = request.args.get('email')
-        if not email_query:
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
         token = auth.current_user()[1]
-        if email_token != email_query:
-            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
-            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         content = request.form
         password = content["password"] if "password" in content else None
         fullname = content["fullname"] if "fullname" in content else None
         phone_number = content["phone_number"] if "phone_number" in content else None
         photo = Photo.from_bytes(request.files['photo'].stream) if 'photo' in request.files else None
         try:
-            self.auth_server.profile_update(email=email_query, user_token=token,
+            self.auth_server.profile_update(email=email_token, user_token=token,
                                             password=password, fullname=fullname,
                                             phone_number=phone_number, photo=photo)
         except UnauthorizedUserError:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
-        except UnexistentUserError:
-            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % email_query)
-            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % email_query), 404
         return messages.SUCCESS_JSON, 200
 
     @auth.login_required
@@ -230,14 +221,7 @@ class Controller:
         Uploads a video for a user
         :return: a json with the video data or an error in another case
         """
-        email_query = request.args.get('email')
-        if not email_query:
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
-            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         email_token = auth.current_user()[0]
-        if email_token != email_query:
-            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
-            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         content = request.form
         if not UPLOAD_VIDEO_MANDATORY_FIELDS.issubset(content.keys()) or not "video" in request.files:
             self.logger.debug((messages.MISSING_FIELDS_ERROR % (UPLOAD_VIDEO_MANDATORY_FIELDS - set(content.keys()))))
@@ -249,17 +233,36 @@ class Controller:
         video = request.files['video'].stream
         description = content["description"] if "description" in content else None
         try:
-            file_location = self.media_server.upload_video(user_email=email_query,
+            file_location = self.media_server.upload_video(user_email=email_token,
                                                            title=title, video=video)
         except InvalidVideoFormatError:
             self.logger.debug(messages.INVALID_VIDEO_FORMAT)
             return messages.ERROR_JSON % messages.INVALID_VIDEO_FORMAT, 400
         video_data = VideoData(title=title, location=location, creation_time=datetime.now(),
                                file_location=file_location, visible=visible, description=description)
-        self.video_database.add_video(user_email=email_query, video_data=video_data)
+        self.video_database.add_video(user_email=email_token, video_data=video_data)
         response_dict = video_data._asdict()
         response_dict["creation_time"] = response_dict["creation_time"].isoformat()
         return json.dumps(response_dict), 200
+
+    @auth.login_required
+    def users_video_delete(self):
+        """
+        Deletes a video from a user
+        :return: a json with a success message on success or an error in another case
+        """
+        video_title = request.args.get('video_title')
+        email_token = auth.current_user()[0]
+        if not video_title:
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "video_title"))
+            return messages.ERROR_JSON % "video_title", 400
+        try:
+            self.media_server.delete_video(email_token, video_title)
+        except UnexistentVideoError:
+            self.logger.debug((messages.UNEXISTENT_VIDEO_ERROR % (video_title, email_token)))
+            return messages.UNEXISTENT_VIDEO_ERROR % (video_title, email_token), 404
+        self.video_database.delete_video(email_token, video_title)
+        return messages.SUCCESS_JSON, 200
 
     @auth.login_required
     def users_list_videos(self):

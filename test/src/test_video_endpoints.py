@@ -3,6 +3,7 @@ import unittest
 from src.services.media_server import MediaServer
 from src.services.auth_server import AuthServer
 from src.services.exceptions.invalid_video_format_error import InvalidVideoFormatError
+from src.services.exceptions.unexistent_video_error import UnexistentVideoError
 import os
 from unittest.mock import MagicMock
 import requests
@@ -21,7 +22,7 @@ class MockResponse(NamedTuple):
     def raise_for_status(self):
         return None
 
-class TestAuthServerEndpoints(unittest.TestCase):
+class TestVideoEndpoints(unittest.TestCase):
     def setUp(self) -> None:
         os.environ["AUTH_ENDPOINT_URL"] = "google.com"
         os.environ["AUTH_SERVER_SECRET"] = "secret"
@@ -34,11 +35,13 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.get_logged_email = AuthServer.get_logged_email
         self.upload_video = MediaServer.upload_video
         self.profile_query = AuthServer.profile_query
+        self.delete_video = MediaServer.delete_video
 
     def tearDown(self):
         MediaServer.upload_video = self.upload_video
         AuthServer.get_logged_email = self.get_logged_email
         AuthServer.profile_query = self.profile_query
+        MediaServer.delete_video = self.delete_video
 
     def test_user_upload_video_without_authentication(self):
         with self.app.test_client() as c:
@@ -62,15 +65,6 @@ class TestAuthServerEndpoints(unittest.TestCase):
                                     "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
-
-    def test_user_upload_video_unauthorized_token(self):
-        AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
-        with self.app.test_client() as c:
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 403)
 
     def test_user_upload_video_invalid_format(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
@@ -139,6 +133,70 @@ class TestAuthServerEndpoints(unittest.TestCase):
             self.assertEqual(len(json.loads(response.data)), 2)
             self.assertEqual(json.loads(response.data)[0]["video"]["title"], "Titulo 2")
             self.assertEqual(json.loads(response.data)[1]["video"]["title"], "Titulo")
+
+    def test_video_delete_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            time.sleep(0.5)
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo 2", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.delete('/user/video',
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_video_delete_unexistent_video(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            time.sleep(0.5)
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo 2", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            MediaServer.delete_video = MagicMock(return_value=None, side_effect=UnexistentVideoError)
+            response = c.delete('/user/video', query_string={"video_title": "asd"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 404)
+
+    def test_video_delete_video_ok(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        MediaServer.delete_video = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            time.sleep(0.5)
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo 2", "location": "Buenos Aires",
+                                    "visible":"true","video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.delete('/user/video', query_string={"video_title": "Titulo 2"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(json.loads(response.data)), 1)
+            self.assertEqual(json.loads(response.data)[0]["video"]["title"], "Titulo")
 
     def test_user_upload_two_videos_one_private(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
@@ -388,75 +446,3 @@ class TestAuthServerEndpoints(unittest.TestCase):
             self.assertEqual(len(json.loads(response.data)), 1)
             self.assertEqual(json.loads(response.data)[0]["reactions"]["like"], 0)
             self.assertEqual(json.loads(response.data)[0]["reactions"]["dislike"], 0)
-
-    def test_comment_video_not_json(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        MediaServer.upload_video = MagicMock(return_value="")
-        with self.app.test_client() as c:
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.post('/videos/comment', data={"target_email": "asd@asd.com",
-                                                       "video_title": "Hola",
-                                                       "comment": "Asd"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 400)
-
-    def test_comment_video_missing_fields(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        MediaServer.upload_video = MagicMock(return_value="")
-        with self.app.test_client() as c:
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.post('/videos/comment', json={"target_email": "asd@asd.com",
-                                                       "video_title": "Hola"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 400)
-
-    def test_get_video_comments_missing_fields(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        MediaServer.upload_video = MagicMock(return_value="")
-        with self.app.test_client() as c:
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.get('/videos/comments', query_string={"other_user_email": "asd@asd.com"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 400)
-
-    def test_comment_video_ok(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        MediaServer.upload_video = MagicMock(return_value="")
-        with self.app.test_client() as c:
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.post('/videos/comment', json={"target_email": "asd@asd.com",
-                                                       "video_title": "Hola",
-                                                       "comment": "Asd"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.post('/videos/comment', json={"target_email": "asd@asd.com",
-                                                       "video_title": "Hola",
-                                                       "comment": "Asd2"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.get('/videos/comments', query_string={"other_user_email": "asd@asd.com",
-                                                               "video_title": "Hola"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            comments_data = json.loads(response.data)
-            assert len(comments_data) == 2
-            assert comments_data[0]["user"]["email"] == "asd@asd.com"
-            assert comments_data[0]["comment"]["content"] == "Asd2"
-            assert comments_data[1]["user"]["email"] == "asd@asd.com"
-            assert comments_data[1]["comment"]["content"] == "Asd"

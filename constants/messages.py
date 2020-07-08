@@ -13,3 +13,4 @@ INTERNAL_ERROR_CONTACT_ADMINISTRATION = "Internal server error, please contact t
 UNEXISTENT_FRIEND_REQUEST = "Unexistent friend request from %s to %s"
 UNEXISTENT_REACTION = "Unexistent reaction '%s'"
 NO_MORE_PAGES_ERROR = "No more pages"
+UNEXISTENT_VIDEO_ERROR = "Unexistent video '%s' from user %s"

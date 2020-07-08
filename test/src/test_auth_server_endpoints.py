@@ -186,32 +186,6 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.put('/user', query_string={"email": "caropistillo@gmail.com"}, data='')
             self.assertEqual(response.status_code, 401)
 
-    def test_user_update_for_missing_fields_error(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        with self.app.test_client() as c:
-            response = c.put('/user', query_string={"fullname": "Carolina"},
-                             headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 400)
-
-    def test_user_update_for_non_existing_user_error(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        AuthServer.profile_update = MagicMock(return_value=None, side_effect=UnexistentUserError)
-        with self.app.test_client() as c:
-            response = c.put('/user', query_string={"email": "asd@asd.com"},
-                             data={"fullname":"Carolina Pistillo", "phone_number":"11 1111-1111",
-                                "password":"carolina"},
-                             headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 404)
-
-    def test_user_update_for_unauthorized_non_matching_token(self):
-        AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
-        with self.app.test_client() as c:
-            response = c.put('/user', query_string={"email": "asd@asd.com"},
-                             data={"fullname":"Carolina Pistillo", "phone_number":"11 1111-1111",
-                                "password":"carolina"},
-                             headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 403)
-
     def test_user_update_for_unauthorized_auth_server(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         AuthServer.profile_update = MagicMock(return_value=None, side_effect=UnauthorizedUserError)

@@ -36,6 +36,11 @@ ON CONFLICT (user_email, title) DO UPDATE
       description = excluded.description;
 """
 
+VIDEO_DELETE_QUERY = """
+DELETE FROM {videos_table_names}
+WHERE user_email=%s AND title=%s;
+"""
+
 LIST_USER_VIDEOS_QUERY = """
 SELECT title, creation_time, visible, location, file_location, description, like_count, dislike_count
 FROM (
@@ -148,6 +153,21 @@ class PostgresVideoDatabase(VideoDatabase):
                             (user_email, video_data.title, video_data.creation_time.isoformat(),
                              video_data.visible, video_data.location, video_data.file_location,
                              video_data.description))
+        self.conn.commit()
+        cursor.close()
+
+    def delete_video(self, user_email: str, video_title: str) -> NoReturn:
+        """
+        Deletes a video from the database
+
+        :param user_email: the user owner of the video
+        :param video_title: the video title
+        """
+        cursor = self.conn.cursor()
+        self.logger.debug("Deleting video for user with email %s" % user_email)
+        self.safe_query_run(self.conn, cursor,
+                            VIDEO_DELETE_QUERY.format(videos_table_names=self.videos_table_name),
+                            (user_email, video_title))
         self.conn.commit()
         cursor.close()
 

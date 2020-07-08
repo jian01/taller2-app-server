@@ -59,6 +59,17 @@ def test_add_two_videos_and_query(monkeypatch, video_postgres_database):
     assert videos[0][0].title == "Titulo2"
     assert videos[1][0].title == "Titulo"
 
+def test_delete_videos_and_query(monkeypatch, video_postgres_database):
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data)
+    video_postgres_database.add_video("giancafferata@hotmail.com", fake_video_data2)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 2
+    video_postgres_database.delete_video("giancafferata@hotmail.com", fake_video_data.title)
+    videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
+    assert len(videos) == 1
+    assert videos[0][0].title == fake_video_data2.title
+
+
 def test_add_video_and_get_top(monkeypatch, video_postgres_database):
     videos = video_postgres_database.list_user_videos("giancafferata@hotmail.com")
     assert len(videos) == 0

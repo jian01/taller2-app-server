@@ -23,7 +23,7 @@ class MockResponse(NamedTuple):
     def raise_for_status(self):
         return None
 
-class TestAuthServerEndpoints(unittest.TestCase):
+class TestMessagesEndpoints(unittest.TestCase):
     def setUp(self) -> None:
         os.environ["AUTH_ENDPOINT_URL"] = "google.com"
         os.environ["AUTH_SERVER_SECRET"] = "secret"

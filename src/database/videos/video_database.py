@@ -53,6 +53,15 @@ class VideoDatabase:
         """
 
     @abstractmethod
+    def delete_video(self, user_email: str, video_title: str) -> NoReturn:
+        """
+        Deletes a video from the database
+
+        :param user_email: the user owner of the video
+        :param video_title: the video title
+        """
+
+    @abstractmethod
     def list_user_videos(self, user_email: str) -> List[Tuple[VideoData, Dict[Reaction, int]]]:
         """
         Get all the user videos

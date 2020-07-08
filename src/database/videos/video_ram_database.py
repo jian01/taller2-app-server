@@ -29,6 +29,17 @@ class RamVideoDatabase(VideoDatabase):
         else:
             self.videos_by_user[user_email].append(video_data)
 
+    def delete_video(self, user_email: str, video_title: str) -> NoReturn:
+        """
+        Deletes a video from the database
+
+        :param user_email: the user owner of the video
+        :param video_title: the video title
+        """
+        if user_email in self.videos_by_user:
+            self.videos_by_user[user_email] = [v for v in self.videos_by_user[user_email]
+                                               if v.title!=video_title]
+
     def get_video_reactions(self, target_email: str, video_title: str) -> Dict[Reaction, int]:
         """
         Gets the video reaction counts
