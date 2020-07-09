@@ -412,6 +412,32 @@ paths:
           description: Access token is missing or invalid
           content: {}
       x-codegen-request-body-name: body
+  /user/friend:
+    delete:
+      tags:
+        - friendship
+      summary: Deletes a friend
+      description: Deletes a friend
+      parameters:
+        - name: other_user_email
+          in: query
+          description: The user's email to delete friendship
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing parameters
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
   /user/friends:
     get:
       tags:

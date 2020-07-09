@@ -63,6 +63,21 @@ def test_accept_friend_request_ok(monkeypatch, friend_postgres_database):
     assert friend_postgres_database.are_friends('giancafferata@hotmail.com',
                                                 'cafferatagian@hotmail.com')
 
+def test_delete_friendship(monkeypatch, friend_postgres_database):
+    assert not friend_postgres_database.are_friends('giancafferata@hotmail.com',
+                                                    'cafferatagian@hotmail.com')
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.delete_friendship('giancafferata@hotmail.com',
+                                               'cafferatagian@hotmail.com')
+    assert len(friend_postgres_database.get_friend_requests('cafferatagian@hotmail.com')) == 0
+    assert len(friend_postgres_database.get_friends('cafferatagian@hotmail.com')) == 0
+    assert len(friend_postgres_database.get_friends('giancafferata@hotmail.com')) == 0
+    assert not friend_postgres_database.are_friends('giancafferata@hotmail.com',
+                                                    'cafferatagian@hotmail.com')
+
 def test_reject_unexistent_friend_request(monkeypatch, friend_postgres_database):
     with pytest.raises(UnexistentFriendRequest):
         friend_postgres_database.reject_friend_request('giancafferata@hotmail.com',

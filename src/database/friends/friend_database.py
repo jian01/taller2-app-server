@@ -78,6 +78,15 @@ class FriendDatabase:
         """
 
     @abstractmethod
+    def delete_friendship(self, user_email1: str, user_email2: str) -> NoReturn:
+        """
+        Delete friendship if exists
+
+        :param user_email1: first user email
+        :param user_email2: second user email
+        """
+
+    @abstractmethod
     def are_friends(self, user_email1: str, user_email2: str) -> bool:
         """
         Check if user1 is friend with user2

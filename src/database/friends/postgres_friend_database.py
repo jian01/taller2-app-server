@@ -53,6 +53,11 @@ INSERT INTO {} (user1, user2)
 VALUES (%s, %s)
 """
 
+DELETE_FRIEND_QUERY = """
+DELETE FROM {}
+WHERE user1 = %s AND user2 = %s;
+"""
+
 SEND_MESSAGE_QUERY = """
 INSERT INTO {} (from_user, to_user, message, datetime)
 VALUES (%s, %s, %s, %s)
@@ -231,6 +236,23 @@ class PostgresFriendDatabase(FriendDatabase):
         cursor.close()
         friend_emails = [t[0] for t in result]+[t[1] for t in result]
         return [f for f in friend_emails if f!=user_email]
+
+    def delete_friendship(self, user_email1: str, user_email2: str) -> NoReturn:
+        """
+        Delete friendship if exists
+
+        :param user_email1: first user email
+        :param user_email2: second user email
+        """
+        friend_tuple = list(sorted([user_email1,user_email2]))
+        friend_tuple = (friend_tuple[0], friend_tuple[1])
+        self.logger.debug("Deleting friendship between %s and %s" % (user_email1, user_email2))
+        cursor = self.conn.cursor()
+        self.safe_query_run(self.conn, cursor,
+                            DELETE_FRIEND_QUERY.format(self.friends_table_name),
+                            friend_tuple)
+        cursor.close()
+        self.conn.commit()
 
     def are_friends(self, user_email1: str, user_email2: str) -> bool:
         """
