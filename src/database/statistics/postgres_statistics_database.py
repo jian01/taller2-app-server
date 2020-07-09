@@ -20,7 +20,7 @@ WHERE alias = %s
 GET_PAGINATED_API_CALLS_QUERY = """
 SELECT path, status, datetime, "time", method
 FROM {app_server_api_calls_table}
-WHERE alias = %s
+WHERE alias = %s AND datetime > NOW() - INTERVAL '30 days'
 LIMIT %s OFFSET %s;
 """
 
