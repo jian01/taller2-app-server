@@ -199,13 +199,13 @@ create table chotuve.video_comments
 		foreign key (video_owner_email, video_title) references chotuve.videos
 );
 
-create table app_server_api_calls
+create table chotuve.app_server_api_calls
 (
     id        serial not null,
     alias     varchar,
     path      varchar,
     status    integer,
-    timestamp timestamp,
+    datetime  timestamp,
     time      double precision,
     method    varchar
 );

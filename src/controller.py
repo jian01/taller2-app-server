@@ -673,11 +673,26 @@ class Controller:
                     for u,c in zip(users_data, comments)]
         return json.dumps(response), 200
 
-    @register_api_call
     def api_call_statistics(self):
         """
         Computes api call statistics and returns it
 
         :return: a json with statistics
         """
+        api_call_statistics = self.statistic_database.compute_statistics()
+        last_30_days_uploaded_videos = {k.isoformat(): v for k, v in api_call_statistics.last_30_days_uploaded_videos.items()}
+        last_30_days_user_registrations = {k.isoformat(): v for k, v in api_call_statistics.last_30_days_user_registrations.items()}
+        last_30_days_users_logins = {k.isoformat(): v for k, v in api_call_statistics.last_30_days_users_logins.items()}
+        last_30_days_api_call_amount = {k.isoformat(): v for k, v in api_call_statistics.last_30_days_api_call_amount.items()}
+        last_30_day_mean_api_call_time = {k.isoformat(): v for k, v in api_call_statistics.last_30_day_mean_api_call_time.items()}
+        return json.dumps({"last_30_days_uploaded_videos": last_30_days_uploaded_videos,
+                           "last_30_days_user_registrations": last_30_days_user_registrations,
+                           "last_30_days_users_logins": last_30_days_users_logins,
+                           "last_30_days_api_call_amount": last_30_days_api_call_amount,
+                           "last_30_day_mean_api_call_time": last_30_day_mean_api_call_time,
+                           "last_30_days_api_calls_by_path": api_call_statistics.last_30_days_api_calls_by_path,
+                           "last_30_days_api_calls_by_status": api_call_statistics.last_30_days_api_calls_by_status,
+                           "last_30_days_api_calls_response_times": api_call_statistics.last_30_days_api_calls_response_times,
+                           "last_30_days_api_calls_by_method": api_call_statistics.last_30_days_api_calls_by_method
+                           })
 

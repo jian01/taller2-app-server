@@ -101,4 +101,7 @@ def create_application_with_controller(controller: Controller):
     app.add_url_rule('/user/last_conversations', 'last_conversations',
                      controller.get_last_conversations, methods=["GET"])
 
+    app.add_url_rule('/api_call_statistics', 'api_call_statistics',
+                     controller.api_call_statistics, methods=["GET"])
+
     return app

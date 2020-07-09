@@ -118,7 +118,6 @@ class PostgresVideoDatabase(VideoDatabase):
     """
     logger = logging.getLogger(__name__)
 
-    # TODO: avoid sql injection
     def __init__(self, videos_table_name: str, users_table_name: str,
                  video_reactions_table_name: str, video_comments_table_name: str,
                  postgr_host_env_name: str, postgr_user_env_name: str,
