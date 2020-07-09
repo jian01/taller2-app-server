@@ -16,6 +16,8 @@ tags:
   description: Operations with user's private messages
 - name: comments
   description: Operations with user's comments
+- name: statistics
+  description: Operations related to server statistics
 paths:
   /user:
     get:
@@ -858,6 +860,17 @@ paths:
                           type: string
         400:
           description: Missing fields
+          content: {}
+      x-codegen-request-body-name: body
+  /api_call_statistics:
+    get:
+      tags:
+        - statistics
+      summary: Get api calls statistics
+      description: Get api calls statistics
+      responses:
+        200:
+          description: Successful operation
           content: {}
       x-codegen-request-body-name: body
 components:
