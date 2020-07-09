@@ -96,6 +96,20 @@ class RamFriendDatabase(FriendDatabase):
         friends = [f for f in friends if f!=user_email]
         return friends
 
+    def delete_friendship(self, user_email1: str, user_email2: str) -> NoReturn:
+        """
+        Delete friendship if exists
+
+        :param user_email1: first user email
+        :param user_email2: second user email
+        """
+        friend_tuple = list(sorted([user_email1,user_email2]))
+        friend_tuple = (friend_tuple[0], friend_tuple[1])
+        try:
+            self.friends.remove(friend_tuple)
+        except KeyError:
+            return
+
     def are_friends(self, user_email1: str, user_email2: str) -> bool:
         """
         Check if user1 is friend with user2

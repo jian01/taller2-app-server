@@ -460,6 +460,20 @@ class Controller:
 
     @register_api_call
     @auth.login_required
+    def delete_friendship(self):
+        """
+        Delete a friendship
+        :return: a json on success or an error in another case
+        """
+        other_user_email = request.args.get('other_user_email')
+        if not other_user_email:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "other_user_email")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other_user_email", 400
+        email_token = auth.current_user()[0]
+        self.friend_database.delete_friendship(email_token, other_user_email)
+        return messages.SUCCESS_JSON, 200
+
+    @auth.login_required
     def friendship_status_with(self):
         """
         Get a friendship status

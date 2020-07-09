@@ -89,6 +89,8 @@ def create_application_with_controller(controller: Controller):
                      controller.user_list_friend_requests, methods=["GET"])
     app.add_url_rule('/user/friends', 'user_list_friends',
                      controller.user_list_friends, methods=["GET"])
+    app.add_url_rule('/user/friend', 'delete_friendship',
+                     controller.delete_friendship, methods=["DELETE"])
     app.add_url_rule('/user/friendship_status_with', 'friendship_status_with',
                      controller.friendship_status_with, methods=["GET"])
 
