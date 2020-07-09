@@ -17,6 +17,7 @@ from src.services.exceptions.unauthorized_user_error import UnauthorizedUserErro
 from src.services.exceptions.invalid_video_format_error import InvalidVideoFormatError
 from src.database.videos.video_database import VideoDatabase, VideoData, Reaction
 from src.database.friends.friend_database import FriendDatabase
+from src.database.statistics.statistics_database import StatisticsDatabase, ApiCallsStatistics
 from src.database.friends.exceptions.users_already_friends_error import UsersAlreadyFriendsError
 from src.database.friends.exceptions.unexistent_friend_requests import UnexistentFriendRequest
 from src.database.friends.exceptions.unexistent_requestor_user_error import UnexistentRequestorUserError
@@ -25,6 +26,7 @@ from src.database.friends.exceptions.users_are_not_friends_error import UsersAre
 from src.database.friends.exceptions.no_more_messages_error import NoMoreMessagesError
 from src.services.media_server import MediaServer
 from datetime import datetime
+from src.register_api_call_decorator import register_api_call
 
 auth = HTTPTokenAuth(scheme='Bearer')
 
@@ -47,7 +49,8 @@ class Controller:
     def __init__(self, auth_server: AuthServer,
                  media_server: MediaServer,
                  video_database: VideoDatabase,
-                 friend_database: FriendDatabase):
+                 friend_database: FriendDatabase,
+                 statistic_database: StatisticsDatabase):
         """
         Here the init should receive all the parameters needed to know how to answer all the queries
         """
@@ -55,6 +58,7 @@ class Controller:
         self.media_server = media_server
         self.video_database = video_database
         self.friend_database = friend_database
+        self.statistic_database = statistic_database
 
         @auth.verify_token
         def verify_token(token) -> Optional[Tuple[str, str]]:
@@ -71,6 +75,7 @@ class Controller:
             except InvalidLoginTokenError:
                 return
 
+    @register_api_call
     def api_health(self):
         """
         A dumb api health
@@ -79,6 +84,7 @@ class Controller:
         """
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     def users_register(self):
         """
         Handles the user registration
@@ -104,6 +110,7 @@ class Controller:
             return messages.ERROR_JSON % str(e), 400
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     def users_login(self):
         """
         Handles the user login
@@ -127,8 +134,9 @@ class Controller:
         except UnexistentUserError:
             self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % content["email"])
             return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["email"]), 404
-        return json.dumps({"login_token": login_token})
+        return json.dumps({"login_token": login_token}), 200
 
+    @register_api_call
     def users_profile_query(self):
         """
         Handles the user recovering
@@ -143,8 +151,9 @@ class Controller:
         except UnexistentUserError:
             self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % email_query)
             return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % email_query), 404
-        return json.dumps(user_data)
+        return json.dumps(user_data), 200
 
+    @register_api_call
     def users_send_recovery_email(self):
         """
         Recovers a user password by sending a recovery token through email
@@ -168,6 +177,7 @@ class Controller:
             return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["email"]), 404
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     def users_recover_password(self):
         """
         Handles the new password setting
@@ -193,6 +203,7 @@ class Controller:
             return messages.ERROR_JSON % (messages.INVALID_RECOVERY_TOKEN_MESSAGE % content["email"]), 400
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def users_profile_update(self):
         """
@@ -215,6 +226,7 @@ class Controller:
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def users_video_upload(self):
         """
@@ -245,6 +257,7 @@ class Controller:
         response_dict["creation_time"] = response_dict["creation_time"].isoformat()
         return json.dumps(response_dict), 200
 
+    @register_api_call
     @auth.login_required
     def users_video_delete(self):
         """
@@ -264,6 +277,7 @@ class Controller:
         self.video_database.delete_video(email_token, video_title)
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def users_list_videos(self):
         """
@@ -285,6 +299,7 @@ class Controller:
         user_videos = [{"video": video_data, "reactions": reaction_data} for video_data, reaction_data in user_videos]
         return json.dumps(user_videos), 200
 
+    @register_api_call
     def list_top_videos(self):
         """
         List top videos
@@ -299,6 +314,7 @@ class Controller:
         return json.dumps([{"user": u, "video": v, "reactions": r}
                            for v, u, r in zip(user_videos, user_emails, user_reactions)]), 200
 
+    @register_api_call
     @auth.login_required
     def search_videos(self):
         """
@@ -328,6 +344,7 @@ class Controller:
         return json.dumps([{"user": u, "video": v, "reactions": r}
                            for v, u, r in zip(filtered_videos, filtered_users, filtered_reactions)]), 200
 
+    @register_api_call
     @auth.login_required
     def user_send_friend_request(self):
         """
@@ -358,6 +375,7 @@ class Controller:
             return messages.ERROR_JSON % messages.INTERNAL_ERROR_CONTACT_ADMINISTRATION, 500
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def user_list_friend_requests(self):
         """
@@ -369,6 +387,7 @@ class Controller:
         friends = [self.auth_server.profile_query(email) for email in friend_emails]
         return json.dumps(friends), 200
 
+    @register_api_call
     @auth.login_required
     def user_accept_friend_request(self):
         """
@@ -394,6 +413,7 @@ class Controller:
                                           (content["other_user_email"], email_token)), 404
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def user_reject_friend_request(self):
         """
@@ -419,6 +439,7 @@ class Controller:
                                           (content["other_user_email"], email_token)), 404
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def user_list_friends(self):
         """
@@ -437,6 +458,7 @@ class Controller:
         friends = [self.auth_server.profile_query(email) for email in friend_emails]
         return json.dumps(friends), 200
 
+    @register_api_call
     @auth.login_required
     def friendship_status_with(self):
         """
@@ -459,6 +481,7 @@ class Controller:
             response = "sent"
         return json.dumps({"status": response}), 200
 
+    @register_api_call
     @auth.login_required
     def video_reaction_get(self):
         """
@@ -476,6 +499,7 @@ class Controller:
             reaction = reaction.name
         return json.dumps({"reaction": reaction}), 200
 
+    @register_api_call
     @auth.login_required
     def video_reaction(self):
         """
@@ -501,6 +525,7 @@ class Controller:
                                         content["video_title"], reaction[0])
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def video_reaction_delete(self):
         """
@@ -523,6 +548,7 @@ class Controller:
                                             content["video_title"])
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def send_message(self):
         """
@@ -549,6 +575,7 @@ class Controller:
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def get_messages(self):
         """
@@ -573,6 +600,7 @@ class Controller:
             message_list[i]["timestamp"] = message_list[i]["timestamp"].isoformat()
         return json.dumps({"messages": message_list, "pages": pages}), 200
 
+    @register_api_call
     @auth.login_required
     def get_last_conversations(self):
         """
@@ -590,6 +618,7 @@ class Controller:
             response.append({"user": user_data[i], "last_message": last_messages[i]})
         return json.dumps(response), 200
 
+    @register_api_call
     @auth.login_required
     def comment_video(self):
         """
@@ -611,6 +640,7 @@ class Controller:
                                           content["video_title"], content["comment"])
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def get_video_comments(self):
         """
@@ -627,3 +657,12 @@ class Controller:
                      "comment": {"content":c.content, "timestamp": c.timestamp.isoformat()}}
                     for u,c in zip(users_data, comments)]
         return json.dumps(response), 200
+
+    @register_api_call
+    def api_call_statistics(self):
+        """
+        Computes api call statistics and returns it
+
+        :return: a json with statistics
+        """
+

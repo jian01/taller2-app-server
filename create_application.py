@@ -5,6 +5,7 @@ from config.load_config import load_config
 from typing import Optional
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_cors import CORS
+from src.register_api_call_decorator import set_statistics_database
 
 
 fileConfig('config/logging_conf.ini')
@@ -25,8 +26,10 @@ def create_application(config_path: Optional[str] = None, return_controller: Opt
     if not config_path:
         config_path = DEFAULT_CONFIG_FILE
     config = load_config(config_path)
+    set_statistics_database(config.statistics_database)
     controller = Controller(config.auth_server,config.media_server,
-                            config.video_database,config.friend_database)
+                            config.video_database,config.friend_database,
+                            config.statistics_database)
     if not return_controller:
         return create_application_with_controller(controller)
     else:
