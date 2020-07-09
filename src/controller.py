@@ -473,6 +473,7 @@ class Controller:
         self.friend_database.delete_friendship(email_token, other_user_email)
         return messages.SUCCESS_JSON, 200
 
+    @register_api_call
     @auth.login_required
     def friendship_status_with(self):
         """
