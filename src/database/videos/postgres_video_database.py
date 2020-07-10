@@ -3,8 +3,13 @@ from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from src.database.videos.video_database import VideoData, VideoDatabase, Reaction, Comment
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from nltk import word_tokenize
+
+DATE_SCORE_PONDER = 0.2
+VIDEO_COUNT_PONDER = 0.05
+APPROVAL_SCORE_PONDER = 0.5
+COMMENT_COUNT_PONDER = 0.4
 
 VIDEO_WITH_LIKES_QUERY = '''
 SELECT user_email, title, creation_time, visible, location, file_location, description, COALESCE(vr_likes.count, 0) as like_count, COALESCE(vr_dislikes.count, 0) as dislike_count
@@ -51,7 +56,7 @@ ORDER BY creation_time DESC
 """
 
 TOP_VIDEO_QUERY = """
-SELECT user_email, u.fullname, u.phone_number, u.photo, title, creation_time, visible, location, file_location, description, like_count, dislike_count
+SELECT v.user_email, u.fullname, u.phone_number, u.photo, title, creation_time, visible, location, file_location, description, like_count, dislike_count, NOW() - creation_time as since, like_count-dislike_count as approval, video_count, COALESCE(comment_count, 0) as comment_count
 FROM (
 SELECT user_email, title, creation_time, visible, location, file_location, description, like_count, dislike_count
 FROM (
@@ -62,6 +67,18 @@ ORDER BY RANDOM()
 LIMIT 10) as v
 INNER JOIN {users_table_name} as u
 ON u.email = v.user_email
+INNER JOIN (
+SELECT user_email, COUNT(*) as video_count
+FROM {videos_table_name}
+GROUP BY 1) as vc
+ON vc.user_email = v.user_email
+LEFT JOIN
+(SELECT video_owner_email, video_title, COUNT(*) as comment_count
+FROM {video_comments_table_name}
+GROUP BY 1,2) as vcc
+ON vcc.video_title = v.title AND vcc.video_owner_email = v.user_email
+ORDER BY since
+LIMIT 100
 """
 
 BASE_SEARCH_QUERY = """
@@ -71,8 +88,7 @@ SELECT * FROM (
 {video_with_likes}
 ) AS video_with_likes
 WHERE (%s) AND visible = true
-ORDER BY RANDOM()
-LIMIT 100) as v
+ORDER BY RANDOM()) as v
 INNER JOIN {users_table_name} as u
 ON u.email = v.user_email
 """
@@ -187,9 +203,9 @@ class PostgresVideoDatabase(VideoDatabase):
         cursor = self.conn.cursor()
         self.safe_query_run(self.conn, cursor,
                             LIST_USER_VIDEOS_QUERY.format(video_with_likes=
-                                                          VIDEO_WITH_LIKES_QUERY.format(
-                                                              videos_table_name=self.videos_table_name,
-                                                              video_reactions_table_name=self.video_reactions_table_name))
+                            VIDEO_WITH_LIKES_QUERY.format(
+                                videos_table_name=self.videos_table_name,
+                                video_reactions_table_name=self.video_reactions_table_name))
                             % user_email)
         result = cursor.fetchall()
         # title, creation_time, visible, location, file_location, description, likes, dislikes
@@ -207,23 +223,45 @@ class PostgresVideoDatabase(VideoDatabase):
 
         :return: a list of (user data, video data, reactions counts)
         """
+
         self.logger.debug("Listing top videos")
         cursor = self.conn.cursor()
 
         self.safe_query_run(self.conn, cursor,
                             TOP_VIDEO_QUERY.format(video_with_likes=
-                                                   VIDEO_WITH_LIKES_QUERY.format(
-                                                       videos_table_name=self.videos_table_name,
-                                                       video_reactions_table_name=self.video_reactions_table_name),
-                                                   users_table_name=self.users_table_name))
+                            VIDEO_WITH_LIKES_QUERY.format(
+                                videos_table_name=self.videos_table_name,
+                                video_reactions_table_name=self.video_reactions_table_name),
+                                users_table_name=self.users_table_name,
+                                videos_table_name=self.videos_table_name,
+                                video_comments_table_name=self.video_comments_table_name))
         result = cursor.fetchall()
-        # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
+        # 0:user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
+
+        # 12:since, approval, video_count, comment_count
+        max_since = max(max([r[12] for r in result]).total_seconds(), 1)
+        max_approval = max(max([r[13] for r in result]), 1)
+        max_video_count = max([r[14] for r in result])
+        max_comment_count = max(max([r[15] for r in result]), 1)
+        scores = []
+        for r in result:
+            since_score = 1 - (r[12].total_seconds() / max_since)
+            approval_score = r[13] / max_approval
+            video_count_penalty = -(r[14] / max_video_count)
+            comment_count_score = r[15] / max_comment_count
+            scores.append(DATE_SCORE_PONDER * since_score + APPROVAL_SCORE_PONDER * approval_score +
+                          VIDEO_COUNT_PONDER * video_count_penalty + COMMENT_COUNT_PONDER * comment_count_score)
+        scores = list(enumerate(scores))
+        top_positions = [pos for pos, _ in sorted(scores, key=lambda x: x[1], reverse=True)[:10]]
+
+        filtered_result = [result[t] for t in top_positions]
+
         result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
                                    file_location=r[8], description=r[9])
-                         for r in result]
+                         for r in filtered_result]
         result_emails = [{"email": r[0], "fullname": r[1], "phone_number": r[2],
-                          "photo": r[3]} for r in result]
-        result_reactions = [{Reaction.like: r[10], Reaction.dislike: r[11]} for r in result]
+                          "photo": r[3]} for r in filtered_result]
+        result_reactions = [{Reaction.like: r[10], Reaction.dislike: r[11]} for r in filtered_result]
         cursor.close()
 
         return list(zip(result_emails, result_videos, result_reactions))
@@ -381,7 +419,7 @@ class PostgresVideoDatabase(VideoDatabase):
                             (target_email, video_title))
         result = cursor.fetchall()
         # u.email, u.fullname, u.phone_number, u.photo, vc.comment, vc.datetime
-        result_comments = [Comment(content=r[4],timestamp=r[5]) for r in result]
+        result_comments = [Comment(content=r[4], timestamp=r[5]) for r in result]
         result_users = [{"email": r[0], "fullname": r[1], "phone_number": r[2],
                          "photo": r[3]} for r in result]
         cursor.close()
