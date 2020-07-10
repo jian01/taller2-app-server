@@ -586,13 +586,13 @@ class Controller:
         Deletes a reaction
         :return: a json with a success message on success or an error in another case
         """
-        other_user_email = request.args.get('other_user_email')
+        target_email = request.args.get('target_email')
         video_title = request.args.get('video_title')
-        if not other_user_email or not video_title:
+        if not target_email or not video_title:
             self.logger.debug(messages.MISSING_FIELDS_ERROR % "other_user_email or video_title")
             return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other_user_email or video_title", 400
         email_token = auth.current_user()[0]
-        self.video_database.delete_reaction(email_token, other_user_email, video_title)
+        self.video_database.delete_reaction(email_token, target_email, video_title)
         return messages.SUCCESS_JSON, 200
 
     @register_api_call

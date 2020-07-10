@@ -417,7 +417,7 @@ class TestVideoEndpoints(unittest.TestCase):
                                     "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            response = c.delete('/videos/reaction', query_string={"other_user_email": "asd@asd.com"},
+            response = c.delete('/videos/reaction', query_string={"target_email": "asd@asd.com"},
                                 headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
@@ -437,7 +437,7 @@ class TestVideoEndpoints(unittest.TestCase):
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
-            response = c.delete('/videos/reaction', query_string={"other_user_email": "asd@asd.com",
+            response = c.delete('/videos/reaction', query_string={"target_email": "asd@asd.com",
                                                                   "video_title": "Hola"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
