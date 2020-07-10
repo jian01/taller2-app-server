@@ -62,9 +62,7 @@ SELECT user_email, title, creation_time, visible, location, file_location, descr
 FROM (
 {video_with_likes}
 ) AS video_with_likes
-WHERE visible = true
-ORDER BY RANDOM()
-LIMIT 10) as v
+WHERE visible = true) as v
 INNER JOIN {users_table_name} as u
 ON u.email = v.user_email
 INNER JOIN (
