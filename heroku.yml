@@ -2,4 +2,4 @@ build:
   docker:
     web: Dockerfile
 run:
-  web: /bin/bash -c "envsubst '\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf" && supervisord -n -c /app/supervisord.conf
+  web: /bin/bash -c "envsubst '\$PORT' < /etc/nginx/sites-available/appserver.template > /etc/nginx/sites-available/appserver" && supervisord -n -c /app/supervisord.conf

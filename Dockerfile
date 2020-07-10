@@ -7,7 +7,7 @@ RUN apt-get install -qy python3.6 python3.6-dev python3.6-venv python3-distutils
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python3.6 get-pip.py
 RUN apt-get install nginx supervisor -qy
-COPY default.conf.template /etc/nginx/sites-available/appserver
+COPY default.conf.template /etc/nginx/sites-available/appserver.template
 RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
 RUN ln -s /etc/nginx/sites-available/appserver /etc/nginx/sites-enabled
 RUN pip install -r requirements.txt
