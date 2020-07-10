@@ -586,20 +586,13 @@ class Controller:
         Deletes a reaction
         :return: a json with a success message on success or an error in another case
         """
-        try:
-            assert request.is_json
-        except AssertionError:
-            self.logger.debug(messages.REQUEST_IS_NOT_JSON)
-            return messages.ERROR_JSON % messages.REQUEST_IS_NOT_JSON, 400
-        content = request.get_json()
-        if not VIDEO_REACTION_DELETE_MANDATORY_FIELDS.issubset(content.keys()):
-            self.logger.debug(
-                messages.MISSING_FIELDS_ERROR % (VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())))
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % (
-                        VIDEO_REACTION_DELETE_MANDATORY_FIELDS - set(content.keys())), 400
+        other_user_email = request.args.get('other_user_email')
+        video_title = request.args.get('video_title')
+        if not other_user_email or not video_title:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "other_user_email or video_title")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other_user_email or video_title", 400
         email_token = auth.current_user()[0]
-        self.video_database.delete_reaction(email_token, content["target_email"],
-                                            content["video_title"])
+        self.video_database.delete_reaction(email_token, other_user_email, video_title)
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
