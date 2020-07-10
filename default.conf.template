@@ -1,3 +1,9 @@
 server {
-  listen $PORT;
+  listen 80;
+  server_name chotuve-app-serv.herokuapp.com;
+
+  location / {
+    include proxy_params;
+    proxy_pass http://unix:/usr/appserver.sock;
+  }
 }
