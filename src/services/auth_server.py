@@ -7,9 +7,10 @@ from src.services.exceptions.invalid_register_field_error import InvalidRegister
 from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
+from src.services.exceptions.no_more_pages_error import NoMorePagesError
 from src.model.photo import Photo
 from io import BytesIO
-from typing import Optional, NoReturn, Dict
+from typing import Optional, NoReturn, Dict, Any
 from functools import lru_cache
 import base64
 import logging
@@ -17,6 +18,7 @@ import logging
 NEW_API_KEY_ENDPOINT = "/api_key"
 USER_LOGIN_ENDPOINT = "/user/login"
 USER_ENDPOINT = "/user"
+REGISTERED_USERS_ENDPOINT = "/registered_users"
 RECOVERY_EMAIL_SEND_ENDPOINT = "/user/recover_password"
 RECOVER_PASSWORD_ENDPOINT = "/user/new_password"
 
@@ -224,3 +226,24 @@ class AuthServer:
             raise UnexistentUserError
         response.raise_for_status()
 
+    def get_registered_users(self, page: int, users_per_page: int, user_token: str) -> Dict[str, Any]:
+        """
+        Get the list of registered users paginated
+
+        :param page: the page number
+        :param users_per_page: the users per page
+        :param user_token: the user token (must be admin)
+        :return: a dictionary {"results":[users], "pages": number of pages}
+        """
+        self.logger.debug("Listing registered users")
+        response = requests.get(self.auth_url + REGISTERED_USERS_ENDPOINT,
+                                params={"api_key": self.api_key,
+                                        "page": page,
+                                        "users_per_page": users_per_page},
+                                headers={"Authorization": "Bearer %s" % user_token})
+        if response.status_code == 403:
+            raise UnauthorizedUserError
+        if response.status_code == 404:
+            raise NoMorePagesError
+        response.raise_for_status()
+        return response.json()

@@ -145,3 +145,4 @@ class TestAuthServer(unittest.TestCase):
     def test_user_delete_ok(self):
         requests.delete = MagicMock(return_value=MockResponse({}, 200))
         self.auth_server.user_delete("asd@asd.com", "dummy_token")
+

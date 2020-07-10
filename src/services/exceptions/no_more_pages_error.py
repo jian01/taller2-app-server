@@ -1,0 +1,2 @@
+class NoMorePagesError(AttributeError):
+    pass
