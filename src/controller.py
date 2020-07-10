@@ -220,12 +220,13 @@ class Controller:
         email_token = auth.current_user()[0]
         token = auth.current_user()[1]
         content = request.form
+        email = content["email"] if "email" in content else email_token
         password = content["password"] if "password" in content else None
         fullname = content["fullname"] if "fullname" in content else None
         phone_number = content["phone_number"] if "phone_number" in content else None
         photo = Photo.from_bytes(request.files['photo'].stream) if 'photo' in request.files else None
         try:
-            self.auth_server.profile_update(email=email_token, user_token=token,
+            self.auth_server.profile_update(email=email, user_token=token,
                                             password=password, fullname=fullname,
                                             phone_number=phone_number, photo=photo)
         except UnauthorizedUserError:
