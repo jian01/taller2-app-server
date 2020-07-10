@@ -5,7 +5,7 @@ from typing import NoReturn, Generator, List, Optional, Tuple
 import logging
 import math
 
-DEFAULT_BATCH_SIZE = 30
+DEFAULT_BATCH_SIZE = 100
 
 ADD_API_CALL_QUERY = """
 INSERT INTO {app_server_api_calls_table} (alias, path, status, datetime, "time", method)
