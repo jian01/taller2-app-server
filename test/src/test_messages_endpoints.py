@@ -95,7 +95,7 @@ class TestMessagesEndpoints(unittest.TestCase):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         with self.app.test_client() as c:
             response = c.get('/user/messages_with', query_string={"other_user_email": "gian@asd.com",
-                                                                  "page": 1, "per_page":10},
+                                                                  "page": 2, "per_page":10},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 404)
 
@@ -134,7 +134,7 @@ class TestMessagesEndpoints(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
 
             response = c.get('/user/messages_with', query_string={"other_user_email": "asd@asd.com",
-                                                                  "page": 0, "per_page":2},
+                                                                  "page": 1, "per_page":2},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             messages = json.loads(response.data)
@@ -144,7 +144,7 @@ class TestMessagesEndpoints(unittest.TestCase):
             self.assertEqual(messages["messages"][1]["message"], "ke ondis, salen esas ricardas nudes?")
 
             response = c.get('/user/messages_with', query_string={"other_user_email": "asd@asd.com",
-                                                                  "page": 1, "per_page":2},
+                                                                  "page": 2, "per_page":2},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             messages = json.loads(response.data)

@@ -606,6 +606,8 @@ class Controller:
         email_token = auth.current_user()[0]
         page = int(page)
         per_page = int(per_page)
+        # App sends starting with 1 but we start at 0
+        page -= 1
         try:
             message_list, pages = self.friend_database.get_conversation(email_token, other_user_email, per_page, page)
         except NoMoreMessagesError:
