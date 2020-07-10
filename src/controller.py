@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from flask import request
 from flask_httpauth import HTTPTokenAuth
 from constants import messages
+from flask_cors import cross_origin
 from src.services.auth_server import AuthServer
 from src.model.photo import Photo
 from src.services.exceptions.invalid_credentials_error import InvalidCredentialsError
@@ -85,6 +86,7 @@ class Controller:
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
+    @cross_origin()
     def users_register(self):
         """
         Handles the user registration
@@ -111,6 +113,7 @@ class Controller:
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
+    @cross_origin()
     def users_login(self):
         """
         Handles the user login
@@ -137,6 +140,7 @@ class Controller:
         return json.dumps({"login_token": login_token}), 200
 
     @register_api_call
+    @cross_origin()
     def users_profile_query(self):
         """
         Handles the user recovering
@@ -154,6 +158,7 @@ class Controller:
         return json.dumps(user_data), 200
 
     @register_api_call
+    @cross_origin()
     def users_send_recovery_email(self):
         """
         Recovers a user password by sending a recovery token through email
@@ -178,6 +183,7 @@ class Controller:
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
+    @cross_origin()
     def users_recover_password(self):
         """
         Handles the new password setting
@@ -204,6 +210,7 @@ class Controller:
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
+    @cross_origin()
     @auth.login_required
     def users_profile_update(self):
         """
@@ -258,6 +265,7 @@ class Controller:
         return json.dumps(response_dict), 200
 
     @register_api_call
+    @cross_origin()
     @auth.login_required
     def users_video_delete(self):
         """
@@ -675,6 +683,7 @@ class Controller:
                     for u,c in zip(users_data, comments)]
         return json.dumps(response), 200
 
+    @cross_origin()
     def api_call_statistics(self):
         """
         Computes api call statistics and returns it

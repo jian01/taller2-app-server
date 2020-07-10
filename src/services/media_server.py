@@ -7,7 +7,7 @@ from src.services.exceptions.unexistent_video_error import UnexistentVideoError
 import logging
 
 VIDEO_UPLOAD_TIMEOUT = 100
-DEFAULT_TIMEOUT = 30
+DEFAULT_TIMEOUT = 15
 
 VIDEOS_ENDPOINT = "/videos"
 

@@ -32,6 +32,7 @@ class TestAuthServer(unittest.TestCase):
         self.post = requests.post
         self.get = requests.get
         self.put = requests.put
+        self.delete = requests.delete
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
         self.auth_server = AuthServer(auth_server_url_env_name="AUTH_ENDPOINT_URL",
                                       auth_server_secret_env_name="AUTH_SERVER_SECRET",
@@ -42,6 +43,7 @@ class TestAuthServer(unittest.TestCase):
         requests.post = self.post
         requests.get = self.get
         requests.put = self.put
+        requests.delete = self.delete
 
     def test_valid_login(self):
         requests.post = MagicMock(return_value=MockResponse({"login_token": "dummy"}, 200))
@@ -129,3 +131,17 @@ class TestAuthServer(unittest.TestCase):
                                             fullname="Gian",
                                             phone_number="1111",
                                             photo=Photo())
+
+    def test_user_delete_unauthorized(self):
+        requests.delete = MagicMock(return_value=MockResponse({}, 403))
+        with self.assertRaises(UnauthorizedUserError):
+            self.auth_server.user_delete("asd@asd.com", "dummy_token")
+
+    def test_user_delete_unexistent_user(self):
+        requests.delete = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(UnexistentUserError):
+            self.auth_server.user_delete("asd@asd.com", "dummy_token")
+
+    def test_user_delete_ok(self):
+        requests.delete = MagicMock(return_value=MockResponse({}, 200))
+        self.auth_server.user_delete("asd@asd.com", "dummy_token")

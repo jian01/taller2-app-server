@@ -22,7 +22,7 @@ RECOVER_PASSWORD_ENDPOINT = "/user/new_password"
 
 USER_ALREADY_REGISTERED_MESSAGE = "User with email %s is already registered"
 
-DEFAULT_TIMEOUT = 30.0
+DEFAULT_TIMEOUT = 15
 
 class AuthServer:
     """
@@ -201,6 +201,23 @@ class AuthServer:
                                 files={"photo": photo_bytes} if photo_bytes else {},
                                 timeout=DEFAULT_TIMEOUT,
                                 headers={"Authorization": "Bearer %s" % user_token})
+        if response.status_code == 403:
+            raise UnauthorizedUserError
+        if response.status_code == 404:
+            raise UnexistentUserError
+        response.raise_for_status()
+
+    def user_delete(self, email:str, user_token: str) -> NoReturn:
+        """
+        Deletes a user
+
+        :param email: the email of the user to delete
+        :param user_token: the login token
+        """
+        self.logger.debug("Deleting %s user" % email)
+        response = requests.delete(self.auth_url + USER_ENDPOINT,
+                                   params={"api_key": self.api_key, "email": email},
+                                   headers={"Authorization": "Bearer %s" % user_token})
         if response.status_code == 403:
             raise UnauthorizedUserError
         if response.status_code == 404:

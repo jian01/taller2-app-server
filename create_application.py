@@ -43,6 +43,14 @@ def create_application_with_controller(controller: Controller):
 
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
+    cors = CORS(app, resources={"/user": {"origins": "*"},
+                                "/user/recover_password": {"origins": "*"},
+                                "/user/new_password": {"origins": "*"},
+                                "/user/login": {"origins": "*"},
+                                "/users": {"origins": "*"},
+                                "/user/video": {"origins": "*"},
+                                "/api_call_statistics": {"origins": "*"}})
+
     app.add_url_rule('/health', 'api_health', controller.api_health)
     app.add_url_rule('/user', 'users_register', controller.users_register,
                      methods=["POST"])
