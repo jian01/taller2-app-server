@@ -15,12 +15,11 @@ SWAGGER_URL = "/swagger"
 API_URL = "/static/swagger.yaml"
 
 
-def create_application(config_path: Optional[str] = None, return_controller: Optional[bool] = False):
+def create_application(config_path: Optional[str] = None):
     """
     Creates the flask application
 
     :param config_path: the path to the configuration
-    :param return_controller: if the controller should also be returned as a second value (for testing purposes)
     :return: a Flask app
     """
     if not config_path:
@@ -30,10 +29,7 @@ def create_application(config_path: Optional[str] = None, return_controller: Opt
     controller = Controller(config.auth_server,config.media_server,
                             config.video_database,config.friend_database,
                             config.statistics_database)
-    if not return_controller:
-        return create_application_with_controller(controller)
-    else:
-        return create_application_with_controller(controller), controller
+    return create_application_with_controller(controller)
 
 def create_application_with_controller(controller: Controller):
     app = Flask(__name__)
@@ -58,6 +54,8 @@ def create_application_with_controller(controller: Controller):
                      methods=["POST"])
     app.add_url_rule('/user', 'users_profile_query',
                      controller.users_profile_query, methods=['GET'])
+    app.add_url_rule('/user', 'users_delete',
+                     controller.users_delete, methods=['DELETE'])
     app.add_url_rule('/user', 'users_profile_update',
                      controller.users_profile_update, methods=['PUT'])
     app.add_url_rule('/user/recover_password', 'users_recover_password',

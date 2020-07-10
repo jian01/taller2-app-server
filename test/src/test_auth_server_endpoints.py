@@ -1,8 +1,12 @@
 from create_application import create_application
 import unittest
 from src.services.auth_server import AuthServer
+from src.services.media_server import MediaServer
+from src.database.videos.video_database import VideoData
+from src.database.videos.video_ram_database import RamVideoDatabase
 import os
 from unittest.mock import MagicMock
+from datetime import datetime
 import requests
 from typing import NamedTuple, Dict
 from src.services.exceptions.invalid_credentials_error import InvalidCredentialsError
@@ -12,7 +16,9 @@ from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
+from src.services.exceptions.unexistent_video_error import UnexistentVideoError
 import json
+
 
 class MockResponse(NamedTuple):
     json_dict: Dict
@@ -23,6 +29,7 @@ class MockResponse(NamedTuple):
 
     def raise_for_status(self):
         return None
+
 
 class TestAuthServerEndpoints(unittest.TestCase):
     def setUp(self) -> None:
@@ -40,6 +47,9 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.send_recovery_email = AuthServer.send_recovery_email
         self.recover_password = AuthServer.recover_password
         self.profile_update = AuthServer.profile_update
+        self.user_delete = AuthServer.user_delete
+        self.delete_video = MediaServer.delete_video
+        self.list_user_videos = RamVideoDatabase.list_user_videos
 
     def tearDown(self):
         AuthServer.user_register = self.user_register
@@ -49,6 +59,9 @@ class TestAuthServerEndpoints(unittest.TestCase):
         AuthServer.send_recovery_email = self.send_recovery_email
         AuthServer.recover_password = self.recover_password
         AuthServer.profile_update = self.profile_update
+        AuthServer.user_delete = self.user_delete
+        MediaServer.delete_video = self.delete_video
+        RamVideoDatabase.list_user_videos = self.list_user_videos
 
     def test_register_mandatory_fields(self):
         AuthServer.user_register = MagicMock(return_value=None)
@@ -164,21 +177,21 @@ class TestAuthServerEndpoints(unittest.TestCase):
         AuthServer.recover_password = MagicMock(return_value=None, side_effect=UnexistentUserError)
         with self.app.test_client() as c:
             response = c.post('/user/new_password', json={"email": "giancafferata@hotmail.com",
-                                                              "token": "dummy", "new_password": "asd123"})
+                                                          "token": "dummy", "new_password": "asd123"})
             self.assertEqual(response.status_code, 404)
 
     def test_users_recover_password_invalid_token(self):
         AuthServer.recover_password = MagicMock(return_value=None, side_effect=InvalidRecoveryTokenError)
         with self.app.test_client() as c:
             response = c.post('/user/new_password', json={"email": "giancafferata@hotmail.com",
-                                                              "token": "dummy", "new_password": "asd123"})
+                                                          "token": "dummy", "new_password": "asd123"})
             self.assertEqual(response.status_code, 400)
 
     def test_users_recover_password_ok(self):
         AuthServer.recover_password = MagicMock(return_value=None)
         with self.app.test_client() as c:
             response = c.post('/user/new_password', json={"email": "giancafferata@hotmail.com",
-                                                              "token": "dummy", "new_password": "asd123"})
+                                                          "token": "dummy", "new_password": "asd123"})
             self.assertEqual(response.status_code, 200)
 
     def test_user_update_without_authentication(self):
@@ -186,22 +199,106 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.put('/user', query_string={"email": "caropistillo@gmail.com"}, data='')
             self.assertEqual(response.status_code, 401)
 
+    def test_user_update_for_missing_fields_error(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"fullname": "Carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
     def test_user_update_for_unauthorized_auth_server(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         AuthServer.profile_update = MagicMock(return_value=None, side_effect=UnauthorizedUserError)
         with self.app.test_client() as c:
             response = c.put('/user', query_string={"email": "asd@asd.com"},
+                             data={"fullname": "Carolina Pistillo", "phone_number": "11 1111-1111",
+                                   "password": "carolina"},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_user_update_for_non_existing_user_error(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.profile_update = MagicMock(return_value=None, side_effect=UnexistentUserError)
+        with self.app.test_client() as c:
+            response = c.put('/user', query_string={"email": "asd@asd.com"},
                              data={"fullname":"Carolina Pistillo", "phone_number":"11 1111-1111",
                                 "password":"carolina"},
                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.status_code, 404)
 
     def test_user_update_success(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         AuthServer.profile_update = MagicMock(return_value=None)
         with self.app.test_client() as c:
             response = c.put('/user', query_string={"email": "asd@asd.com"},
-                             data={"fullname":"Carolina Pistillo", "phone_number":"11 3263-7625",
-                                "password":"carolina"},
+                             data={"fullname": "Carolina Pistillo", "phone_number": "11 3263-7625",
+                                   "password": "carolina"},
                              headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
+
+    def test_user_delete_invalid_login_token(self):
+        AuthServer.get_logged_email = MagicMock(return_value=None, side_effect=InvalidLoginTokenError)
+        AuthServer.user_delete = MagicMock(return_value=None)
+        MediaServer.delete_video = MagicMock(return_value=None, side_effect=UnexistentVideoError)
+        RamVideoDatabase.list_user_videos = MagicMock(return_value=[])
+        with self.app.test_client() as c:
+            response = c.delete('/user', query_string={"email": "asd@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 401)
+
+    def test_user_delete_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.user_delete = MagicMock(return_value=None)
+        MediaServer.delete_video = MagicMock(return_value=None, side_effect=UnexistentVideoError)
+        RamVideoDatabase.list_user_videos = MagicMock(return_value=[])
+        with self.app.test_client() as c:
+            response = c.delete('/user', headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_user_delete_unauthorized(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.user_delete = MagicMock(return_value=None, side_effect=UnauthorizedUserError)
+        MediaServer.delete_video = MagicMock(return_value=None, side_effect=UnexistentVideoError)
+        RamVideoDatabase.list_user_videos = MagicMock(return_value=[])
+        with self.app.test_client() as c:
+            response = c.delete('/user', query_string={"email": "asd@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_user_delete_unexistent(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.user_delete = MagicMock(return_value=None, side_effect=UnexistentUserError)
+        delete_video_mock = MagicMock(return_value=None, side_effect=UnexistentVideoError)
+        MediaServer.delete_video = delete_video_mock
+        RamVideoDatabase.list_user_videos = MagicMock(return_value=[])
+        with self.app.test_client() as c:
+            response = c.delete('/user', query_string={"email": "asd@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 404)
+
+    def test_user_delete_ok(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.user_delete = MagicMock(return_value=None)
+        delete_video_mock = MagicMock(return_value=None, side_effect=UnexistentVideoError)
+        MediaServer.delete_video = delete_video_mock
+        RamVideoDatabase.list_user_videos = MagicMock(
+            return_value=[(VideoData(title="Titulo", description="Descripcion coso",
+                                     creation_time=datetime.now(), visible=True,
+                                     location="Buenos Aires", file_location="file_location"), {})])
+        with self.app.test_client() as c:
+            response = c.delete('/user', query_string={"email": "asd@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(delete_video_mock.called)
+
+    def test_user_delete_no_videos(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.user_delete = MagicMock(return_value=None)
+        delete_video_mock = MagicMock(return_value=None)
+        MediaServer.delete_video = delete_video_mock
+        RamVideoDatabase.list_user_videos = MagicMock(return_value=[])
+        with self.app.test_client() as c:
+            response = c.delete('/user', query_string={"email": "asd@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(delete_video_mock.called)

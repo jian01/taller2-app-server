@@ -217,21 +217,51 @@ class Controller:
         Handles updating a user's profile
         :return: a json with a success message on success or an error in another case
         """
-        email_token = auth.current_user()[0]
+        email_query = request.args.get('email')
+        if not email_query:
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "email"), 400
         token = auth.current_user()[1]
         content = request.form
-        email = content["email"] if "email" in content else email_token
         password = content["password"] if "password" in content else None
         fullname = content["fullname"] if "fullname" in content else None
         phone_number = content["phone_number"] if "phone_number" in content else None
         photo = Photo.from_bytes(request.files['photo'].stream) if 'photo' in request.files else None
         try:
-            self.auth_server.profile_update(email=email, user_token=token,
+            self.auth_server.profile_update(email=email_query, user_token=token,
                                             password=password, fullname=fullname,
                                             phone_number=phone_number, photo=photo)
         except UnauthorizedUserError:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        except UnexistentUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % email_query)
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % email_query), 404
+        return messages.SUCCESS_JSON, 200
+
+    @register_api_call
+    @cross_origin()
+    @auth.login_required
+    def users_delete(self):
+        user_email = request.args.get('email')
+        token = auth.current_user()[1]
+        if not user_email:
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "user_email"))
+            return messages.ERROR_JSON % "user_email", 400
+        user_videos = self.video_database.list_user_videos(user_email)
+        try:
+            self.auth_server.user_delete(user_email, token)
+        except UnauthorizedUserError:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        except UnexistentUserError:
+            self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % user_email)
+            return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % user_email), 404
+        for video_data,_ in user_videos:
+            try:
+                self.media_server.delete_video(user_email, video_data.title)
+            except UnexistentVideoError:
+                continue
         return messages.SUCCESS_JSON, 200
 
     @register_api_call

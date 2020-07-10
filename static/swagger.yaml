@@ -28,7 +28,7 @@ paths:
       parameters:
       - name: email
         in: query
-        description: The user name for login
+        description: The user email
         required: true
         schema:
           type: string
@@ -50,6 +50,13 @@ paths:
       - user
       summary: Update users profile
       description: Updates the data of the user
+      parameters:
+        - name: email
+          in: query
+          description: The email of the user to update
+          required: true
+          schema:
+            type: string
       requestBody:
         description: The user data to be updated
         content:
@@ -71,6 +78,40 @@ paths:
           content: {}
         403:
           description: Not authorized
+          content: {}
+        404:
+          description: User not found
+          content: {}
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - user
+      summary: Deletes an user
+      description: Deletes an user
+      parameters:
+        - name: email
+          in: query
+          description: The email of the user to be deleted
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Invalid or missing fields or the message is not a json
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+        404:
+          description: User not found
           content: {}
       x-codegen-request-body-name: body
     post:
