@@ -1,5 +1,5 @@
 server {
-  listen <%= ENV["PORT"] %>;
+  listen 8080;
   server_name chotuve-app-serv.herokuapp.com;
 
   location / {
