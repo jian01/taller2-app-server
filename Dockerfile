@@ -10,6 +10,5 @@ RUN apt-get install nginx supervisor -qy
 COPY default.conf.template /etc/nginx/sites-available/default
 RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
 RUN echo "\nworker_processes auto;" >> /etc/nginx/nginx.conf
-RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
 RUN pip install -r requirements.txt
 RUN python3.6 -c "import nltk; nltk.download('punkt', download_dir='/usr/nltk_data')"
