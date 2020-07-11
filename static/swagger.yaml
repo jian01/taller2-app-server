@@ -904,10 +904,10 @@ paths:
           description: Missing fields
           content: {}
       x-codegen-request-body-name: body
-  /registered_users:
+  /users:
     get:
       tags:
-        - users
+        - user
       summary: Get a paginated list of registered users
       description: Get a paginated list of registered users
       parameters:
