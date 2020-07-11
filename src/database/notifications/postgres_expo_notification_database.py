@@ -4,8 +4,7 @@ import json
 import psycopg2
 import os
 import logging
-import firebase_admin
-from firebase_admin import credentials, messaging
+import requests
 
 NOTIFICATION_TOKEN_SAVE = """
 DELETE FROM {notification_tokens_table_name}
@@ -23,24 +22,19 @@ FROM {notification_tokens_table_name}
 WHERE user_email = %s
 """
 
-class PostgresFirebaseNotificationDatabase:
+EXPO_SEND_NOTIFICATION_ENDPOINT = "https://exp.host/--/api/v2/push/send"
+
+NOTIFICATION_SEND_TIMEOUT = 5
+
+class PostgresExpoNotificationDatabase:
     """
     Notifications database
     """
     logger = logging.getLogger(__name__)
 
     def __init__(self, notification_tokens_table_name: str,
-                 firebase_credentials_json_env_name: str,
                  postgr_host_env_name: str, postgr_user_env_name: str,
                  postgr_pass_env_name: str, postgr_database_env_name: str):
-
-        creds = credentials.Certificate(json.loads(os.environ[firebase_credentials_json_env_name]))
-        firebase_admin.initialize_app(creds)
-        if firebase_admin.get_app():
-            self.logger.info("Connected to firebase")
-        else:
-            self.logger.error("Unable to connect to firebase")
-            raise ConnectionError("Unable to connect to firebase")
         self.notification_tokens_table_name = notification_tokens_table_name
         self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
                                      password=os.environ[postgr_pass_env_name],
@@ -68,39 +62,50 @@ class PostgresFirebaseNotificationDatabase:
         """
         self.logger.debug("Setting notification token for %s" % user_email)
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            NOTIFICATION_TOKEN_SAVE.format(notification_tokens_table_name=self.notification_tokens_table_name),
-                            (user_email, token))
+        try:
+            self.safe_query_run(self.conn, cursor,
+                                NOTIFICATION_TOKEN_SAVE.format(notification_tokens_table_name=self.notification_tokens_table_name),
+                                (token, user_email, token))
+        except Exception:
+            self.logger.exception("Couldn't register notification token")
+            pass
         self.conn.commit()
         cursor.close()
 
-    def notify(self, user_email: str, payload: Dict) -> NoReturn:
+    def notify(self, user_email: str, title: str, body: str, payload: Dict) -> NoReturn:
         """
         Sends the payload a notification the the user if has registered an app token for that user
 
         :param user_email: the user email for sending the payload
+        :param title: the title of the notification
+        :param body: the body of the notification
         :param payload: the payload to send
         """
         self.logger.debug("Sending notification to %s" % user_email)
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            SEARCH_NOTIFICATION_TOKEN.format(notification_tokens_table_name=self.notification_tokens_table_name),
-                            (user_email,))
-        result = cursor.fetchone()
+        try:
+            self.safe_query_run(self.conn, cursor,
+                                SEARCH_NOTIFICATION_TOKEN.format(notification_tokens_table_name=self.notification_tokens_table_name),
+                                (user_email,))
+            result = cursor.fetchone()
+        except Exception:
+            self.logger.exception("Couldn't send notification")
+            cursor.close()
+            return
         if result:
             token = result[0][0]
             cursor.close()
         else:
             cursor.close()
             return
-
-        message = messaging.Message(
-            data=payload,
-            token=token,
-        )
         try:
-            response = messaging.send(message)
-            self.logger.debug("Notification sent, id: %s" % response)
-        except Exception as err:
-            self.logger.exception("Notification couldn't be sent")
+            requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT, json={"to": token,
+                                                                 "title": title,
+                                                                 "body": body,
+                                                                 "data": payload},
+                          timeout=NOTIFICATION_SEND_TIMEOUT)
+        except Exception:
+            self.logger.exception("Couldn't send notification")
             return
+
+
