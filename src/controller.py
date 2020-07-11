@@ -27,6 +27,7 @@ from src.database.friends.exceptions.users_are_not_friends_error import UsersAre
 from src.database.friends.exceptions.no_more_messages_error import NoMoreMessagesError
 from src.services.exceptions.no_more_pages_error import NoMorePagesError
 from src.services.media_server import MediaServer
+from src.database.notifications.notification_database import NotificationDatabase
 from datetime import datetime
 from src.register_api_call_decorator import register_api_call
 
@@ -52,7 +53,8 @@ class Controller:
                  media_server: MediaServer,
                  video_database: VideoDatabase,
                  friend_database: FriendDatabase,
-                 statistic_database: StatisticsDatabase):
+                 statistic_database: StatisticsDatabase,
+                 notification_database: NotificationDatabase):
         """
         Here the init should receive all the parameters needed to know how to answer all the queries
         """
@@ -61,6 +63,7 @@ class Controller:
         self.video_database = video_database
         self.friend_database = friend_database
         self.statistic_database = statistic_database
+        self.notification_database = notification_database
 
         @auth.verify_token
         def verify_token(token) -> Optional[Tuple[str, str]]:
@@ -138,6 +141,10 @@ class Controller:
         except UnexistentUserError:
             self.logger.debug(messages.USER_NOT_FOUND_MESSAGE % content["email"])
             return messages.ERROR_JSON % (messages.USER_NOT_FOUND_MESSAGE % content["email"]), 404
+
+        if "notification_token" in content:
+            self.notification_database.set_notification_token(content["email"], content["notification_token"])
+
         return json.dumps({"login_token": login_token}), 200
 
     @register_api_call

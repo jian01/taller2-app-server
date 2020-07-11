@@ -1,6 +1,7 @@
 video_database: PostgresVideoDatabase
 friend_database: PostgresFriendDatabase
 statistics_database: PostgresStatisticsDatabase
+notification_database: PostgresExpoNotificationDatabase
 api_key_secret_generator_env_name: API_GENERATOR_SECRET
 
 auth_server:
@@ -41,6 +42,14 @@ statistics_databases:
   PostgresStatisticsDatabase:
     app_server_api_calls_table: "chotuve.app_server_api_calls"
     server_alias_env_name: "SERVER_ALIAS"
+    postgr_host_env_name: "POSTGRES_HOST"
+    postgr_user_env_name: "POSTGRES_USER"
+    postgr_pass_env_name: "POSTGRES_PASSWORD"
+    postgr_database_env_name: "POSTGRES_DATABASE"
+
+notification_databases:
+  PostgresExpoNotificationDatabase:
+    notification_tokens_table_name: "chotuve.user_notification_tokens"
     postgr_host_env_name: "POSTGRES_HOST"
     postgr_user_env_name: "POSTGRES_USER"
     postgr_pass_env_name: "POSTGRES_PASSWORD"

@@ -1,4 +1,5 @@
 from typing import NoReturn, Tuple, Dict, Optional
+from src.database.notifications.notification_database import NotificationDatabase
 from abc import abstractmethod
 import json
 import psycopg2
@@ -26,7 +27,8 @@ EXPO_SEND_NOTIFICATION_ENDPOINT = "https://exp.host/--/api/v2/push/send"
 
 NOTIFICATION_SEND_TIMEOUT = 5
 
-class PostgresExpoNotificationDatabase:
+
+class PostgresExpoNotificationDatabase(NotificationDatabase):
     """
     Notifications database
     """
@@ -64,7 +66,8 @@ class PostgresExpoNotificationDatabase:
         cursor = self.conn.cursor()
         try:
             self.safe_query_run(self.conn, cursor,
-                                NOTIFICATION_TOKEN_SAVE.format(notification_tokens_table_name=self.notification_tokens_table_name),
+                                NOTIFICATION_TOKEN_SAVE.format(
+                                    notification_tokens_table_name=self.notification_tokens_table_name),
                                 (token, user_email, token))
         except Exception:
             self.logger.exception("Couldn't register notification token")
@@ -85,7 +88,8 @@ class PostgresExpoNotificationDatabase:
         cursor = self.conn.cursor()
         try:
             self.safe_query_run(self.conn, cursor,
-                                SEARCH_NOTIFICATION_TOKEN.format(notification_tokens_table_name=self.notification_tokens_table_name),
+                                SEARCH_NOTIFICATION_TOKEN.format(
+                                    notification_tokens_table_name=self.notification_tokens_table_name),
                                 (user_email,))
             result = cursor.fetchone()
         except Exception:
@@ -99,13 +103,12 @@ class PostgresExpoNotificationDatabase:
             cursor.close()
             return
         try:
-            requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT, json={"to": token,
-                                                                 "title": title,
-                                                                 "body": body,
-                                                                 "data": payload},
-                          timeout=NOTIFICATION_SEND_TIMEOUT)
+            r = requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT, json={"to": token,
+                                                                     "title": title,
+                                                                     "body": body,
+                                                                     "data": payload},
+                              timeout=NOTIFICATION_SEND_TIMEOUT)
+            r.raise_for_status()
         except Exception:
             self.logger.exception("Couldn't send notification")
             return
-
-

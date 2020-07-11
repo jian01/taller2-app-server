@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import requests
 from typing import NamedTuple, Dict
 from src.services.exceptions.user_already_registered_error import UserAlreadyRegisteredError
+from src.database.notifications.postgres_expo_notification_database import PostgresExpoNotificationDatabase
 from src.services.media_server import MediaServer
 import json
 from io import BytesIO
@@ -27,6 +28,8 @@ class TestAppServerStatistics(unittest.TestCase):
         os.environ["SERVER_ALIAS"] = "Jenny"
         os.environ["SERVER_HEALTH_ENDPOINT"] = "google.com"
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
+        self.notification_database_init = PostgresExpoNotificationDatabase.__init__
+        PostgresExpoNotificationDatabase.__init__ = lambda *args, **kwargs: None
         self.app = create_application()
         self.app.testing = True
         self.user_register = AuthServer.user_register
@@ -49,6 +52,7 @@ class TestAppServerStatistics(unittest.TestCase):
         AuthServer.profile_update = self.profile_update
         MediaServer.upload_video = self.upload_video
         MediaServer.delete_video = self.delete_video
+        PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
 
     def test_login_and_get_statistics(self):
         AuthServer.user_login = MagicMock(return_value="asd123")

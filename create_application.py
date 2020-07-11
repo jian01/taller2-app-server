@@ -28,7 +28,8 @@ def create_application(config_path: Optional[str] = None):
     set_statistics_database(config.statistics_database)
     controller = Controller(config.auth_server,config.media_server,
                             config.video_database,config.friend_database,
-                            config.statistics_database)
+                            config.statistics_database,
+                            config.notifications_database)
     return create_application_with_controller(controller)
 
 def create_application_with_controller(controller: Controller):

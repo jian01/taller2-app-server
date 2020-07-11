@@ -6,6 +6,7 @@ from src.services.media_server import MediaServer
 from src.database.videos.video_database import VideoDatabase
 from src.database.friends.friend_database import FriendDatabase
 from src.database.statistics.statistics_database import StatisticsDatabase
+from src.database.notifications.notification_database import NotificationDatabase
 
 class AppServerConfig(NamedTuple):
     auth_server: AuthServer
@@ -13,6 +14,7 @@ class AppServerConfig(NamedTuple):
     video_database: VideoDatabase
     friend_database: FriendDatabase
     statistics_database: StatisticsDatabase
+    notifications_database: NotificationDatabase
 
 def load_config(config_path: str) -> AppServerConfig:
     """
@@ -36,7 +38,12 @@ def load_config(config_path: str) -> AppServerConfig:
     stat_database = StatisticsDatabase.factory(config_dict["statistics_database"],
                                                **config_dict["statistics_databases"][config_dict["statistics_database"]])
 
+    notifications_database = NotificationDatabase.factory(config_dict["notification_database"],
+                                                          **config_dict["notification_databases"][config_dict["notification_database"]])
+
+
     return AppServerConfig(auth_server=auth_server, media_server=media_server,
                            video_database=video_database, friend_database=friend_database,
-                           statistics_database=stat_database)
+                           statistics_database=stat_database,
+                           notifications_database=notifications_database)
 

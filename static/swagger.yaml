@@ -152,6 +152,8 @@ paths:
                   type: string
                 password:
                   type: string
+                notification_token:
+                  type: string
         required: true
       responses:
         200:

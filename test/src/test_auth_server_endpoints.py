@@ -18,6 +18,7 @@ from src.services.exceptions.invalid_recovery_token_error import InvalidRecovery
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.services.exceptions.unexistent_video_error import UnexistentVideoError
 from src.services.exceptions.no_more_pages_error import NoMorePagesError
+from src.database.notifications.postgres_expo_notification_database import PostgresExpoNotificationDatabase
 import json
 
 
@@ -39,6 +40,8 @@ class TestAuthServerEndpoints(unittest.TestCase):
         os.environ["SERVER_ALIAS"] = "Jenny"
         os.environ["SERVER_HEALTH_ENDPOINT"] = "google.com"
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
+        self.notification_database_init = PostgresExpoNotificationDatabase.__init__
+        PostgresExpoNotificationDatabase.__init__ = lambda *args, **kwargs: None
         self.app = create_application()
         self.app.testing = True
         self.user_register = AuthServer.user_register
@@ -52,6 +55,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.delete_video = MediaServer.delete_video
         self.get_registered_users = AuthServer.get_registered_users
         self.list_user_videos = RamVideoDatabase.list_user_videos
+        self.set_notification_token = PostgresExpoNotificationDatabase.set_notification_token
 
     def tearDown(self):
         AuthServer.user_register = self.user_register
@@ -65,6 +69,8 @@ class TestAuthServerEndpoints(unittest.TestCase):
         MediaServer.delete_video = self.delete_video
         RamVideoDatabase.list_user_videos = self.list_user_videos
         AuthServer.get_registered_users = self.get_registered_users
+        PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
+        PostgresExpoNotificationDatabase.set_notification_token = self.set_notification_token
 
     def test_register_mandatory_fields(self):
         AuthServer.user_register = MagicMock(return_value=None)
@@ -116,6 +122,17 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123"})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(json.loads(response.data)["login_token"], "asd123")
+
+    def test_login_ok_w_notification_token(self):
+        AuthServer.user_login = MagicMock(return_value="asd123")
+        mock_set_notification = MagicMock(return_value=None)
+        PostgresExpoNotificationDatabase.set_notification_token = mock_set_notification
+        with self.app.test_client() as c:
+            response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123",
+                                                   "notification_token": "dummy token"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json.loads(response.data)["login_token"], "asd123")
+            self.assertTrue(mock_set_notification.called)
 
     def test_login_invalid_credentials(self):
         AuthServer.user_login = MagicMock(return_value=None, side_effect=InvalidCredentialsError)

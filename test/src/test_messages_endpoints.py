@@ -12,6 +12,7 @@ import requests
 from typing import NamedTuple, Dict
 import json
 import time
+from src.database.notifications.postgres_expo_notification_database import PostgresExpoNotificationDatabase
 
 class MockResponse(NamedTuple):
     json_dict: Dict
@@ -31,6 +32,8 @@ class TestMessagesEndpoints(unittest.TestCase):
         os.environ["SERVER_HEALTH_ENDPOINT"] = "google.com"
         os.environ["MEDIA_ENDPOINT_URL"] = "google.com"
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
+        self.notification_database_init = PostgresExpoNotificationDatabase.__init__
+        PostgresExpoNotificationDatabase.__init__ = lambda *args, **kwargs: None
         self.app = create_application()
         self.app.testing = True
         self.get_logged_email = AuthServer.get_logged_email
@@ -58,6 +61,7 @@ class TestMessagesEndpoints(unittest.TestCase):
         AuthServer.get_logged_email = self.get_logged_email
         AuthServer.profile_query = self.profile_query
         RamFriendDatabase.create_friend_request = self.create_friend_request
+        PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
 
     def test_send_message_not_json(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")

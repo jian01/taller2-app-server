@@ -2,7 +2,7 @@ from create_application import create_application
 import unittest
 from src.services.media_server import MediaServer
 from src.services.auth_server import AuthServer
-from src.services.exceptions.invalid_video_format_error import InvalidVideoFormatError
+from src.database.notifications.postgres_expo_notification_database import PostgresExpoNotificationDatabase
 import os
 from unittest.mock import MagicMock
 import requests
@@ -29,6 +29,8 @@ class TestCommentEndpoints(unittest.TestCase):
         os.environ["SERVER_HEALTH_ENDPOINT"] = "google.com"
         os.environ["MEDIA_ENDPOINT_URL"] = "google.com"
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
+        self.notification_database_init = PostgresExpoNotificationDatabase.__init__
+        PostgresExpoNotificationDatabase.__init__ = lambda *args, **kwargs: None
         self.app = create_application()
         self.app.testing = True
         self.get_logged_email = AuthServer.get_logged_email
@@ -39,6 +41,7 @@ class TestCommentEndpoints(unittest.TestCase):
         MediaServer.upload_video = self.upload_video
         AuthServer.get_logged_email = self.get_logged_email
         AuthServer.profile_query = self.profile_query
+        PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
 
     def test_comment_video_not_json(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")

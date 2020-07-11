@@ -17,11 +17,13 @@ class NotificationDatabase:
         """
 
     @abstractmethod
-    def notify(self, user_email: str, payload: Dict) -> NoReturn:
+    def notify(self, user_email: str, title: str, body: str, payload: Dict) -> NoReturn:
         """
         Sends the payload a notification the the user if has registered an app token for that user
 
         :param user_email: the user email for sending the payload
+        :param title: the title of the notification
+        :param body: the body of the notification
         :param payload: the payload to send
         """
 
