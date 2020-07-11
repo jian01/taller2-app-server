@@ -24,6 +24,9 @@ def register_api_call(func: Callable):
                 api_call = ApiCall(path=request.path, method=request.method,
                                    status=result.status_code, timestamp=datetime.now(),
                                    time=time_elapsed)
-            statistics_database.register_api_call(api_call)
+            try:
+                statistics_database.register_api_call(api_call)
+            except Exception as err:
+                pass
             return result
     return wrapper

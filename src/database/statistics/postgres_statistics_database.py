@@ -50,8 +50,9 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
     def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
         try:
             cursor.execute(query, params)
-        except Exception:
+        except Exception as err:
             connection.rollback()
+            raise err
 
     def register_api_call(self, api_call: ApiCall) -> NoReturn:
         """

@@ -210,4 +210,18 @@ create table chotuve.app_server_api_calls
     method    varchar
 );
 
+create table chotuve.user_notification_tokens
+(
+	user_email varchar
+		constraint user_notification_tokens_pk
+			primary key
+		constraint user_notification_tokens_users_email_fk
+			references chotuve.users
+				on delete cascade,
+	token varchar
+);
+
+create unique index user_notification_tokens_token_uindex
+	on chotuve.user_notification_tokens (token);
+
 ```
