@@ -403,24 +403,6 @@ class TestVideoEndpoints(unittest.TestCase):
             self.assertEqual(json.loads(response.data)[0]["reactions"]["like"], 2)
             self.assertEqual(json.loads(response.data)[0]["reactions"]["dislike"], 0)
 
-    def test_video_reaction_delete_not_json(self):
-        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        MediaServer.upload_video = MagicMock(return_value="")
-        with self.app.test_client() as c:
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
-                              data={"title": "Hola como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 200)
-            response = c.delete('/videos/reaction', data={"target_email": "asd@asd.com"},
-                                headers={"Authorization": "Bearer %s" % "asd123"})
-            self.assertEqual(response.status_code, 400)
-
     def test_video_reaction_delete_not_all_fields(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         MediaServer.upload_video = MagicMock(return_value="")
@@ -435,7 +417,7 @@ class TestVideoEndpoints(unittest.TestCase):
                                     "visible":"true","video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            response = c.delete('/videos/reaction', json={"target_email": "asd@asd.com"},
+            response = c.delete('/videos/reaction', query_string={"target_email": "asd@asd.com"},
                                 headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
@@ -455,8 +437,8 @@ class TestVideoEndpoints(unittest.TestCase):
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
-            response = c.delete('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                       "video_title": "Hola"},
+            response = c.delete('/videos/reaction', query_string={"target_email": "asd@asd.com",
+                                                                  "video_title": "Hola"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 

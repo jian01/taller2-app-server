@@ -634,19 +634,21 @@ paths:
         - video
       summary: Deletes a reaction if exists
       description: Deletes a reaction to a video
+      parameters:
+        - name: target_email
+          in: query
+          description: The email of the owner of the video
+          required: true
+          schema:
+            type: string
+        - name: video_title
+          in: query
+          description: The title of the video
+          required: true
+          schema:
+            type: string
       security:
         - bearerAuth: []
-      requestBody:
-        description: Reaction parameters
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                target_email:
-                  type: string
-                video_title:
-                  type: string
         required: true
       responses:
         200:
