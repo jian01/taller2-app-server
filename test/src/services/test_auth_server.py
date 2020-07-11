@@ -11,6 +11,7 @@ from src.services.exceptions.unexistent_user_error import UnexistentUserError
 from src.services.exceptions.invalid_register_field_error import InvalidRegisterFieldError
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
+from src.services.exceptions.no_more_pages_error import NoMorePagesError
 from src.model.photo import Photo
 
 class MockResponse(NamedTuple):
@@ -145,4 +146,18 @@ class TestAuthServer(unittest.TestCase):
     def test_user_delete_ok(self):
         requests.delete = MagicMock(return_value=MockResponse({}, 200))
         self.auth_server.user_delete("asd@asd.com", "dummy_token")
+
+    def test_registered_users_unauthorized(self):
+        requests.get = MagicMock(return_value=MockResponse({}, 403))
+        with self.assertRaises(UnauthorizedUserError):
+            self.auth_server.get_registered_users(1, 10, "dummy_token")
+
+    def test_registered_users_unexistent_user(self):
+        requests.get = MagicMock(return_value=MockResponse({}, 404))
+        with self.assertRaises(NoMorePagesError):
+            self.auth_server.get_registered_users(1, 10, "dummy_token")
+
+    def test_registered_users_ok(self):
+        requests.get = MagicMock(return_value=MockResponse({}, 200))
+        self.auth_server.get_registered_users(1, 10, "dummy_token")
 

@@ -25,6 +25,7 @@ from src.database.friends.exceptions.unexistent_requestor_user_error import Unex
 from src.database.friends.exceptions.unexistent_target_user_error import UnexistentTargetUserError
 from src.database.friends.exceptions.users_are_not_friends_error import UsersAreNotFriendsError
 from src.database.friends.exceptions.no_more_messages_error import NoMoreMessagesError
+from src.services.exceptions.no_more_pages_error import NoMorePagesError
 from src.services.media_server import MediaServer
 from datetime import datetime
 from src.register_api_call_decorator import register_api_call
@@ -643,6 +644,7 @@ class Controller:
         try:
             message_list, pages = self.friend_database.get_conversation(email_token, other_user_email, per_page, page)
         except NoMoreMessagesError:
+            self.logger.debug(messages.NO_MORE_PAGES_ERROR)
             return messages.NO_MORE_PAGES_ERROR, 404
         message_list = [m._asdict() for m in message_list]
         for i in range(len(message_list)):
@@ -706,6 +708,33 @@ class Controller:
                      "comment": {"content":c.content, "timestamp": c.timestamp.isoformat()}}
                     for u,c in zip(users_data, comments)]
         return json.dumps(response), 200
+
+    @register_api_call
+    @cross_origin()
+    @auth.login_required
+    def registered_users(self):
+        """
+        Handles the return of all registered users
+        return: a json with a list of dictionaries with the registered users data
+                for the required page with a fixed users_per_page value
+        """
+        try:
+            users_per_page = int(request.args.get('users_per_page'))
+            page = int(request.args.get('page'))
+        except TypeError:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "page or users_per_page")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "page or users_per_page", 400
+        token = auth.current_user()[1]
+        try:
+            data_page = self.auth_server.get_registered_users(page, users_per_page, token)
+        except UnauthorizedUserError:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        except NoMorePagesError:
+            self.logger.debug(messages.NO_MORE_PAGES_ERROR)
+            return messages.NO_MORE_PAGES_ERROR, 404
+        return json.dumps(data_page), 200
+
 
     @cross_origin()
     def api_call_statistics(self):

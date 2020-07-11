@@ -17,6 +17,7 @@ from src.services.exceptions.invalid_register_field_error import InvalidRegister
 from src.services.exceptions.invalid_recovery_token_error import InvalidRecoveryTokenError
 from src.services.exceptions.unauthorized_user_error import UnauthorizedUserError
 from src.services.exceptions.unexistent_video_error import UnexistentVideoError
+from src.services.exceptions.no_more_pages_error import NoMorePagesError
 import json
 
 
@@ -49,6 +50,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
         self.profile_update = AuthServer.profile_update
         self.user_delete = AuthServer.user_delete
         self.delete_video = MediaServer.delete_video
+        self.get_registered_users = AuthServer.get_registered_users
         self.list_user_videos = RamVideoDatabase.list_user_videos
 
     def tearDown(self):
@@ -62,6 +64,7 @@ class TestAuthServerEndpoints(unittest.TestCase):
         AuthServer.user_delete = self.user_delete
         MediaServer.delete_video = self.delete_video
         RamVideoDatabase.list_user_videos = self.list_user_videos
+        AuthServer.get_registered_users = self.get_registered_users
 
     def test_register_mandatory_fields(self):
         AuthServer.user_register = MagicMock(return_value=None)
@@ -302,3 +305,35 @@ class TestAuthServerEndpoints(unittest.TestCase):
                                 headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             self.assertFalse(delete_video_mock.called)
+
+    def test_get_registered_users_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.get_registered_users = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.get('/users', query_string={"page": 1},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_get_registered_users_unauthorized(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.get_registered_users = MagicMock(return_value=None, side_effect=UnauthorizedUserError)
+        with self.app.test_client() as c:
+            response = c.get('/users', query_string={"page": 1, "users_per_page":2},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_get_registered_users_no_more_pages(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.get_registered_users = MagicMock(return_value=None, side_effect=NoMorePagesError)
+        with self.app.test_client() as c:
+            response = c.get('/users', query_string={"page": 1, "users_per_page":2},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 404)
+
+    def test_get_registered_users_ok(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.get_registered_users = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.get('/users', query_string={"page": 1, "users_per_page":2},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
