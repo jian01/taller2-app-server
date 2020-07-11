@@ -649,7 +649,6 @@ paths:
             type: string
       security:
         - bearerAuth: []
-        required: true
       responses:
         200:
           description: Successful operation
