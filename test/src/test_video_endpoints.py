@@ -13,6 +13,7 @@ from io import BytesIO
 import json
 import time
 
+
 class MockResponse(NamedTuple):
     json_dict: Dict
     status_code: int
@@ -22,6 +23,7 @@ class MockResponse(NamedTuple):
 
     def raise_for_status(self):
         return None
+
 
 class TestVideoEndpoints(unittest.TestCase):
     def setUp(self) -> None:
@@ -76,7 +78,7 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
@@ -86,7 +88,7 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
@@ -96,12 +98,12 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
@@ -116,19 +118,18 @@ class TestVideoEndpoints(unittest.TestCase):
             response = c.get('/user/videos', headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
-    def test_user_upload_two_videos_and_list(self):
+    def test_user_upload_two_videos_and_list_user_videos(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         MediaServer.upload_video = MagicMock(return_value="")
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            time.sleep(0.5)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
@@ -144,13 +145,12 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            time.sleep(0.5)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.delete('/user/video',
@@ -163,17 +163,17 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            time.sleep(0.5)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             MediaServer.delete_video = MagicMock(return_value=None, side_effect=UnexistentVideoError)
-            response = c.delete('/user/video', query_string={"video_title": "asd"},
+            response = c.delete('/user/video', query_string={"email": "asd@asd.com",
+                                                             "video_title": "asd"},
                                 headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 404)
 
@@ -184,16 +184,16 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            time.sleep(0.5)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            response = c.delete('/user/video', query_string={"video_title": "Titulo 2"},
+            response = c.delete('/user/video', query_string={"email": "asd@asd.com",
+                                                             "video_title": "Titulo 2"},
                                 headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
@@ -202,19 +202,40 @@ class TestVideoEndpoints(unittest.TestCase):
             self.assertEqual(len(json.loads(response.data)), 1)
             self.assertEqual(json.loads(response.data)[0]["video"]["title"], "Titulo")
 
+    def test_video_delete_video_not_authorized(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        MediaServer.delete_video = MagicMock(return_value=None)
+        AuthServer.profile_query = MagicMock(return_value={"admin": False})
+        with self.app.test_client() as c:
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo", "location": "Buenos Aires",
+                                    "visible": "true", "video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.post('/user/video', query_string={"email": "asd@asd.com"},
+                              data={"title": "Titulo 2", "location": "Buenos Aires",
+                                    "visible": "true", "video": (BytesIO(), 'video')},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            AuthServer.get_logged_email = MagicMock(return_value="bsd@asd.com")
+            response = c.delete('/user/video', query_string={"email": "asd@asd.com",
+                                                             "video_title": "Titulo 2"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
     def test_user_upload_two_videos_one_private(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
         MediaServer.upload_video = MagicMock(return_value="")
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            time.sleep(0.5)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Titulo 2", "location": "Buenos Aires",
-                                    "visible":"false","video": (BytesIO(), 'video')},
+                                    "visible": "false", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
@@ -242,28 +263,28 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola como estas", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola estas como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Nada", "location": "Buenos Aires",
-                                    "visible":"true", "description": "Hola",
-                              "video": (BytesIO(), 'video')},
+                                    "visible": "true", "description": "Hola",
+                                    "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.get('/videos/search', query_string={"query": "hola como estas"},
@@ -283,12 +304,12 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/videos/reaction', data={"target_email": "asd@asd.com"},
@@ -301,16 +322,16 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                   "video_title": "Hola"},
+                                                        "video_title": "Hola"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
@@ -320,17 +341,17 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                   "video_title": "Hola",
-                                                   "reaction": "love"},
+                                                        "video_title": "Hola",
+                                                        "reaction": "love"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 400)
 
@@ -348,13 +369,13 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                   "video_title": "Hola",
-                                                   "reaction": "dislike"},
+                                                        "video_title": "Hola",
+                                                        "reaction": "dislike"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
@@ -366,8 +387,8 @@ class TestVideoEndpoints(unittest.TestCase):
             self.assertEqual(json.loads(response.data)[0]["reactions"]["dislike"], 1)
 
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                   "video_title": "Hola",
-                                                   "reaction": "like"},
+                                                        "video_title": "Hola",
+                                                        "reaction": "like"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
@@ -380,8 +401,8 @@ class TestVideoEndpoints(unittest.TestCase):
             self.assertEqual(json.loads(response.data)["reaction"], None)
 
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                   "video_title": "Hola",
-                                                   "reaction": "like"},
+                                                        "video_title": "Hola",
+                                                        "reaction": "like"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
@@ -413,12 +434,12 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola como", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             response = c.delete('/videos/reaction', query_string={"target_email": "asd@asd.com"},
@@ -431,19 +452,19 @@ class TestVideoEndpoints(unittest.TestCase):
         with self.app.test_client() as c:
             response = c.post('/user/video', query_string={"email": "asd@asd.com"},
                               data={"title": "Hola", "location": "Buenos Aires",
-                                    "visible":"true","video": (BytesIO(), 'video')},
+                                    "visible": "true", "video": (BytesIO(), 'video')},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
             AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
             response = c.post('/videos/reaction', json={"target_email": "asd@asd.com",
-                                                   "video_title": "Hola",
-                                                   "reaction": "dislike"},
+                                                        "video_title": "Hola",
+                                                        "reaction": "dislike"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
             response = c.delete('/videos/reaction', query_string={"target_email": "asd@asd.com",
                                                                   "video_title": "Hola"},
-                              headers={"Authorization": "Bearer %s" % "asd123"})
+                                headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
             response = c.get('/user/videos', query_string={"email": "asd@asd.com"},
@@ -452,3 +473,60 @@ class TestVideoEndpoints(unittest.TestCase):
             self.assertEqual(len(json.loads(response.data)), 1)
             self.assertEqual(json.loads(response.data)[0]["reactions"]["like"], 0)
             self.assertEqual(json.loads(response.data)[0]["reactions"]["dislike"], 0)
+
+    def test_list_videos_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            c.post('/user/video', query_string={"email": "asd@asd.com"},
+                   data={"title": "Titulo", "location": "Buenos Aires",
+                         "visible": "true", "video": (BytesIO(), 'video')},
+                   headers={"Authorization": "Bearer %s" % "asd123"})
+            c.post('/user/video', query_string={"email": "asd@asd.com"},
+                   data={"title": "Titulo 2", "location": "Buenos Aires",
+                         "visible": "true", "video": (BytesIO(), 'video')},
+                   headers={"Authorization": "Bearer %s" % "asd123"})
+            response = c.get('/videos', query_string={"page": 0},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_list_videos_not_admin(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.profile_query = MagicMock(return_value={"admin": False})
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            c.post('/user/video', query_string={"email": "asd@asd.com"},
+                   data={"title": "Titulo", "location": "Buenos Aires",
+                         "visible": "true", "video": (BytesIO(), 'video')},
+                   headers={"Authorization": "Bearer %s" % "asd123"})
+            c.post('/user/video', query_string={"email": "asd@asd.com"},
+                   data={"title": "Titulo 2", "location": "Buenos Aires",
+                         "visible": "true", "video": (BytesIO(), 'video')},
+                   headers={"Authorization": "Bearer %s" % "asd123"})
+            response = c.get('/videos', query_string={"page": 0, "per_page": 1},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 403)
+
+    def test_list_videos_list_and_get_no_more_pages(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        AuthServer.profile_query = MagicMock(return_value={"admin": True})
+        MediaServer.upload_video = MagicMock(return_value="")
+        with self.app.test_client() as c:
+            c.post('/user/video', query_string={"email": "asd@asd.com"},
+                   data={"title": "Titulo", "location": "Buenos Aires",
+                         "visible": "true", "video": (BytesIO(), 'video')},
+                   headers={"Authorization": "Bearer %s" % "asd123"})
+            AuthServer.get_logged_email = MagicMock(return_value="bsd@asd.com")
+            c.post('/user/video', query_string={"email": "bsd@asd.com"},
+                   data={"title": "Titulo 2", "location": "Buenos Aires",
+                         "visible": "true", "video": (BytesIO(), 'video')},
+                   headers={"Authorization": "Bearer %s" % "asd123"})
+            response = c.get('/videos', query_string={"page": 0, "per_page": 2},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json.loads(response.data)["pages"], 1)
+            self.assertEqual(json.loads(response.data)["results"][0]["video"]["title"], "Titulo")
+            self.assertEqual(json.loads(response.data)["results"][1]["video"]["title"], "Titulo 2")
+            response = c.get('/videos', query_string={"page": 1, "per_page": 2},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 404)

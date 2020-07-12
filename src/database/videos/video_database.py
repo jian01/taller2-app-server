@@ -38,6 +38,7 @@ class VideoData(NamedTuple):
     visible: bool
     description: Optional[str] = None
 
+
 class VideoDatabase:
     """
     Video database abstraction
@@ -89,7 +90,7 @@ class VideoDatabase:
 
     @abstractmethod
     def react_video(self, actor_email: str, target_email: str,
-                   video_title: str, reaction: Reaction) -> NoReturn:
+                    video_title: str, reaction: Reaction) -> NoReturn:
         """
         Likes a video
 
@@ -144,6 +145,20 @@ class VideoDatabase:
         :return: a tuple of (list of user data, list of comments)
         """
 
+    @abstractmethod
+    def get_paginated_videos(self, page: int, per_page: int) -> Tuple[
+        List[Tuple[Dict, VideoData, Dict[Reaction, int]]], int]:
+        """
+        Get all the videos paginated
+
+        :raises:
+            NoMoreVideosError: if the page does not exist, page 0 always exist
+
+        :param page: the page requested
+        :param per_page: the amount of videos per page
+        :return: a list of (user data, video data, reactions counts) and the number of pages
+        """
+
     @classmethod
     def factory(cls, name: str, *args, **kwargs) -> 'VideoDatabase':
         """
@@ -152,5 +167,5 @@ class VideoDatabase:
         :param name: the name of the database to create in the factory
         :return: a database object
         """
-        database_types = {cls.__name__:cls for cls in VideoDatabase.__subclasses__()}
+        database_types = {cls.__name__: cls for cls in VideoDatabase.__subclasses__()}
         return database_types[name](*args, **kwargs)

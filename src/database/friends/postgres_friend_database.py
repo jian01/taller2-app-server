@@ -342,7 +342,7 @@ class PostgresFriendDatabase(FriendDatabase):
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / per_page))
-        if not page <= pages and page != 0:
+        if not page < pages and page != 0:
             raise NoMoreMessagesError()
 
         self.safe_query_run(self.conn, cursor,

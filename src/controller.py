@@ -25,6 +25,7 @@ from src.database.friends.exceptions.unexistent_requestor_user_error import Unex
 from src.database.friends.exceptions.unexistent_target_user_error import UnexistentTargetUserError
 from src.database.friends.exceptions.users_are_not_friends_error import UsersAreNotFriendsError
 from src.database.friends.exceptions.no_more_messages_error import NoMoreMessagesError
+from src.database.videos.exceptions.no_more_videos_error import NoMoreVideosError
 from src.services.exceptions.no_more_pages_error import NoMorePagesError
 from src.services.media_server import MediaServer
 from src.database.notifications.notification_database import NotificationDatabase
@@ -311,13 +312,17 @@ class Controller:
         Deletes a video from a user
         :return: a json with a success message on success or an error in another case
         """
+        user_email = request.args.get('email')
         video_title = request.args.get('video_title')
         email_token = auth.current_user()[0]
-        if not video_title:
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % "video_title"))
-            return messages.ERROR_JSON % "video_title", 400
+        if not video_title or not user_email:
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "video_title or user_email"))
+            return messages.ERROR_JSON % "video_title or user_email", 400
+        if user_email != email_token and not self.auth_server.profile_query(email_token)["admin"]:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
         try:
-            self.media_server.delete_video(email_token, video_title)
+            self.media_server.delete_video(user_email, video_title)
         except UnexistentVideoError:
             self.logger.debug((messages.UNEXISTENT_VIDEO_ERROR % (video_title, email_token)))
             return messages.UNEXISTENT_VIDEO_ERROR % (video_title, email_token), 404
@@ -387,9 +392,42 @@ class Controller:
                 filtered_users.append(u)
                 filtered_reactions.append(r)
         for i in range(len(user_videos)):
-            user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
+            filtered_videos[i]["creation_time"] = filtered_videos[i]["creation_time"].isoformat()
         return json.dumps([{"user": u, "video": v, "reactions": r}
                            for v, u, r in zip(filtered_videos, filtered_users, filtered_reactions)]), 200
+
+    @register_api_call
+    @cross_origin()
+    @auth.login_required
+    def list_videos(self):
+        """
+        List videos paginated
+        :return: a json with the videos data and pages or an error in another case
+        """
+        page = request.args.get('page')
+        per_page = request.args.get('per_page')
+        if not page or not per_page:
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "page or per_page"))
+            return messages.ERROR_JSON % (messages.MISSING_FIELDS_ERROR % "page or per_page"), 400
+        email_token = auth.current_user()[0]
+        if not self.auth_server.profile_query(email_token)["admin"]:
+            self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
+            return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        try:
+            videos_data, pages = self.video_database.get_paginated_videos(int(page), int(per_page))
+        except NoMoreVideosError:
+            self.logger.debug(messages.NO_MORE_PAGES_ERROR)
+            return messages.NO_MORE_PAGES_ERROR, 404
+        user_videos = [data[1]._asdict() for data in videos_data]
+        user_data = [data[0] for data in videos_data]
+        user_reactions = [{k.name: v for k, v in data[2].items()} for data in videos_data]
+
+        for i in range(len(user_videos)):
+            user_videos[i]["creation_time"] = user_videos[i]["creation_time"].isoformat()
+        return json.dumps({"results":
+                               [{"user": u, "video": v, "reactions": r}
+                           for v, u, r in zip(user_videos, user_data, user_reactions)],
+                           "pages": pages}), 200
 
     @register_api_call
     @auth.login_required

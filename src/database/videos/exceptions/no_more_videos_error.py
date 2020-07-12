@@ -1,0 +1,2 @@
+class NoMoreVideosError(AttributeError):
+    pass

@@ -2,7 +2,9 @@ from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from abc import abstractmethod
 from datetime import datetime
 from src.database.videos.video_database import VideoData, VideoDatabase, Reaction, Comment
+from src.database.videos.exceptions.no_more_videos_error import NoMoreVideosError
 from nltk import word_tokenize
+import math
 
 
 class RamVideoDatabase(VideoDatabase):
@@ -156,7 +158,6 @@ class RamVideoDatabase(VideoDatabase):
             return
         self.reactions[target_email][video_title] = [r for r in self.reactions[target_email][video_title] if r[0] != actor_email]
 
-    @abstractmethod
     def comment_video(self, actor_email: str, target_email: str, video_title: str,
                       comment: str) -> NoReturn:
         """
@@ -173,7 +174,6 @@ class RamVideoDatabase(VideoDatabase):
                                                            Comment(content=comment,
                                                                    timestamp=datetime.now())))
 
-    @abstractmethod
     def get_comments(self, target_email: str, video_title: str) -> Tuple[List[Dict], List[Comment]]:
         """
         Get all the comments for a video
@@ -188,3 +188,26 @@ class RamVideoDatabase(VideoDatabase):
         user_data = [{"email": t[0]} for t in comment_tuples]
         comment_data = [t[1] for t in comment_tuples]
         return user_data, comment_data
+
+    def get_paginated_videos(self, page: int, per_page: int) -> Tuple[
+        List[Tuple[Dict, VideoData, Dict[Reaction, int]]], int]:
+        """
+        Get all the videos paginated
+
+        :raises:
+            NoMoreVideosError: if the page does not exist, page 0 always exist
+
+        :param page: the page requested
+        :param per_page: the amount of videos per page
+        :return: a list of (user data, video data, reactions counts) and the number of pages
+        """
+        all_videos = sorted([(k,v) for k,v in self.videos_by_user.items()], key=lambda x: x[0])
+        all_videos = [(k, video) for k,v in all_videos for video in v]
+        pages = int(math.ceil(len(all_videos) / per_page))
+        if not page < pages and page != 0:
+            raise NoMoreVideosError
+        page_videos = all_videos[page*per_page:(page+1)*per_page]
+        result = []
+        for e, v in page_videos:
+            result.append(({"email": e}, v, self.get_video_reactions(e, v.title)))
+        return result, pages

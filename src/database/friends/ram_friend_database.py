@@ -176,7 +176,7 @@ class RamFriendDatabase(FriendDatabase):
             total_messages += self.messages[(user2_email, user1_email)]
         total_messages = sorted(total_messages, key=lambda x: x.timestamp, reverse=True)
         pages = int(math.ceil(len(total_messages)/per_page))
-        if not page <= pages and page != 0:
+        if not page < pages and page != 0:
             raise NoMoreMessagesError()
         return total_messages[page*per_page:(page+1)*per_page], pages
 

@@ -72,6 +72,8 @@ def create_application_with_controller(controller: Controller):
                      controller.users_video_delete, methods=["DELETE"])
     app.add_url_rule('/user/videos', 'users_list_videos',
                      controller.users_list_videos, methods=["GET"])
+    app.add_url_rule('/videos', 'list_videos',
+                     controller.list_videos, methods=["GET"])
     app.add_url_rule('/videos/top', 'list_top_videos',
                      controller.list_top_videos, methods=["GET"])
     app.add_url_rule('/videos/search', 'search_videos',

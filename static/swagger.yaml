@@ -282,6 +282,12 @@ paths:
       summary: Deletes a video
       description: Deletes a video
       parameters:
+        - name: email
+          in: query
+          description: The email of the user owner of the video
+          required: true
+          schema:
+            type: string
         - name: video_title
           in: query
           description: The title of the video to delete
@@ -922,6 +928,41 @@ paths:
         - name: users_per_page
           in: query
           description: The amount of users per page to get
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields
+          content: {}
+        403:
+          description: Not authorized
+          content: {}
+        404:
+          description: Page does not exist
+          content: {}
+      x-codegen-request-body-name: body
+  /videos:
+    get:
+      tags:
+        - videos
+      summary: Get a paginated list of videos
+      description: Get a paginated list of videos
+      parameters:
+        - name: page
+          in: query
+          description: The page to get
+          required: true
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          description: The amount of videos per page to get
           required: true
           schema:
             type: integer
