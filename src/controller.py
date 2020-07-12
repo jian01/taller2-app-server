@@ -420,6 +420,10 @@ class Controller:
         except UnexistentRequestorUserError:
             self.logger.debug(messages.INTERNAL_ERROR_CONTACT_ADMINISTRATION)
             return messages.ERROR_JSON % messages.INTERNAL_ERROR_CONTACT_ADMINISTRATION, 500
+        self.notification_database.notify(content["other_user_email"],
+                                          "New friendship request", "From %s" % email_token,
+                                          {"kind": "friendship_request",
+                                           "from": email_token})
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
