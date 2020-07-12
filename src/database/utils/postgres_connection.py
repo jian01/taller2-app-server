@@ -2,8 +2,9 @@ import psycopg2
 
 # Perdon por esto, hotfix rapido, TODO: hacer un singleton que no de verguenza
 
+postgres_connections = {}
+
 class PostgresUtils:
-    postgres_connections = {}
     @staticmethod
     def get_postgres_connection(host: str, user: str, password: str, database: str):
         """
