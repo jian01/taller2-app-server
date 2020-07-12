@@ -99,13 +99,15 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
             cursor.close()
             return
         if result:
-            token = result[0][0]
+            token = result[0]
             cursor.close()
         else:
             cursor.close()
             return
         try:
-            r = requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT, json={"to": token,"title": title,"body": body,"data": payload}, timeout=NOTIFICATION_SEND_TIMEOUT)
+            r = requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT,
+                              json={"to": token,"title": title,"body": body,"data": payload},
+                              timeout=NOTIFICATION_SEND_TIMEOUT)
             r.raise_for_status()
         except Exception:
             self.logger.exception("Couldn't send notification")
