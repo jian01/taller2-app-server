@@ -24,7 +24,7 @@ FROM {notification_tokens_table_name}
 WHERE user_email = %s
 """
 
-EXPO_SEND_NOTIFICATION_ENDPOINT = "https://exp.host/--/api/v2/push/send"
+EXPO_SEND_NOTIFICATION_ENDPOINT = "http://exp.host/--/api/v2/push/send"
 
 NOTIFICATION_SEND_TIMEOUT = 5
 
@@ -105,11 +105,7 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
             cursor.close()
             return
         try:
-            r = requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT, json={"to": token,
-                                                                     "title": title,
-                                                                     "body": body,
-                                                                     "data": payload},
-                              timeout=NOTIFICATION_SEND_TIMEOUT)
+            r = requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT, json={"to": token,"title": title,"body": body,"data": payload}, timeout=NOTIFICATION_SEND_TIMEOUT)
             r.raise_for_status()
         except Exception:
             self.logger.exception("Couldn't send notification")
