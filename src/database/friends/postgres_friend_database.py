@@ -13,6 +13,7 @@ from src.database.friends.exceptions.users_are_not_friends_error import UsersAre
 from src.database.friends.exceptions.no_more_messages_error import NoMoreMessagesError
 from src.database.friends.friend_database import FriendDatabase, PrivateMessage
 from datetime import datetime
+from src.database.utils.postgres_connection import PostgresUtils
 
 NEW_FRIEND_REQUEST_QUERY = """
 INSERT INTO {} ("from", "to", status, timestamp)
@@ -105,11 +106,13 @@ INNER JOIN {users_table_name} as u
 ON u.email=messages.other_user
 """
 
+
 class PostgresFriendDatabase(FriendDatabase):
     """
     Postgres implementation of Friend database
     """
     logger = logging.getLogger(__name__)
+
     def __init__(self, friends_table_name: str, friend_requests_table_name: str,
                  user_messages_table_name: str, users_table_name: str,
                  postgr_host_env_name: str, postgr_user_env_name: str,
@@ -119,9 +122,10 @@ class PostgresFriendDatabase(FriendDatabase):
         self.friend_requests_table_name = friend_requests_table_name
         self.user_messages_table_name = user_messages_table_name
         self.users_table_name = users_table_name
-        self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
-                                     password=os.environ[postgr_pass_env_name],
-                                     database=os.environ[postgr_database_env_name])
+        self.conn = PostgresUtils.get_postgres_connection(host=os.environ[postgr_host_env_name],
+                                                          user=os.environ[postgr_user_env_name],
+                                                          password=os.environ[postgr_pass_env_name],
+                                                          database=os.environ[postgr_database_env_name])
         if self.conn.closed == 0:
             self.logger.info("Connected to postgres database")
         else:
@@ -155,7 +159,7 @@ class PostgresFriendDatabase(FriendDatabase):
         cursor = self.conn.cursor()
         self.safe_query_run(self.conn, cursor,
                             NEW_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
-                           (from_user_email, to_user_email, datetime.now().isoformat()))
+                            (from_user_email, to_user_email, datetime.now().isoformat()))
         self.conn.commit()
         cursor.close()
 
@@ -178,7 +182,7 @@ class PostgresFriendDatabase(FriendDatabase):
                             (from_user_email, to_user_email))
         self.conn.commit()
 
-        friend_tuple = list(sorted([from_user_email,to_user_email]))
+        friend_tuple = list(sorted([from_user_email, to_user_email]))
         friend_tuple = (friend_tuple[0], friend_tuple[1])
         cursor.execute(NEW_FRIENDS_QUERY.format(self.friends_table_name),
                        friend_tuple)
@@ -234,8 +238,8 @@ class PostgresFriendDatabase(FriendDatabase):
                             ALL_FRIENDS_QUERY.format(self.friends_table_name) % (user_email, user_email))
         result = cursor.fetchall()
         cursor.close()
-        friend_emails = [t[0] for t in result]+[t[1] for t in result]
-        return [f for f in friend_emails if f!=user_email]
+        friend_emails = [t[0] for t in result] + [t[1] for t in result]
+        return [f for f in friend_emails if f != user_email]
 
     def delete_friendship(self, user_email1: str, user_email2: str) -> NoReturn:
         """
@@ -244,7 +248,7 @@ class PostgresFriendDatabase(FriendDatabase):
         :param user_email1: first user email
         :param user_email2: second user email
         """
-        friend_tuple = list(sorted([user_email1,user_email2]))
+        friend_tuple = list(sorted([user_email1, user_email2]))
         friend_tuple = (friend_tuple[0], friend_tuple[1])
         self.logger.debug("Deleting friendship between %s and %s" % (user_email1, user_email2))
         cursor = self.conn.cursor()
@@ -264,7 +268,7 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Checking whether %s and %s are friends" % (user_email1, user_email2))
         cursor = self.conn.cursor()
-        friends_ordered = tuple(list(sorted([user_email1,user_email2])))
+        friends_ordered = tuple(list(sorted([user_email1, user_email2])))
         self.safe_query_run(self.conn, cursor,
                             CHECK_FRIENDS_QUERY.format(self.friends_table_name) % friends_ordered)
         result = cursor.fetchone()
@@ -334,7 +338,7 @@ class PostgresFriendDatabase(FriendDatabase):
 
         self.safe_query_run(self.conn, cursor,
                             COUNT_ROWS_CONVERSATION_QUERY.format(self.user_messages_table_name),
-                            (user1_email, user2_email,user1_email, user2_email))
+                            (user1_email, user2_email, user1_email, user2_email))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / per_page))
@@ -343,7 +347,7 @@ class PostgresFriendDatabase(FriendDatabase):
 
         self.safe_query_run(self.conn, cursor,
                             GET_PAGINATED_CONVERSATION_QUERY.format(self.user_messages_table_name),
-                            (user1_email, user2_email,user1_email, user2_email,per_page,
+                            (user1_email, user2_email, user1_email, user2_email, per_page,
                              page * per_page))
         result = cursor.fetchall()
         self.conn.commit()
@@ -365,7 +369,7 @@ class PostgresFriendDatabase(FriendDatabase):
         self.safe_query_run(self.conn, cursor,
                             GET_CONVERSATIONS_QUERY.format(user_messages_table_name=self.user_messages_table_name,
                                                            users_table_name=self.users_table_name),
-                            (user_email,)*6)
+                            (user_email,) * 6)
         '''
         u.email, u.fullname, u.phone_number, u.photo
         messages.from_user, messages.to_user, messages.message, messages.datetime

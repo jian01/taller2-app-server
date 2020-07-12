@@ -7,6 +7,7 @@ from typing import NamedTuple
 import requests
 import os
 from io import BytesIO
+from src.database.utils.postgres_connection import PostgresUtils
 
 class FakePostgres(NamedTuple):
     closed: int
@@ -16,6 +17,8 @@ def statistics_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "dummy"
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
+    monkeypatch.setattr(PostgresUtils, "get_postgres_connection",
+                        lambda *args, **kwargs: psycopg2.connect(*args, **kwargs))
     database = PostgresStatisticsDatabase(*(["DUMB_ENV_NAME"]*6))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/statistics_database/config/initialize_db.sql", "r") as initialize_query:
@@ -26,7 +29,8 @@ def statistics_postgres_database(monkeypatch, postgresql):
     database.conn = postgresql
     database.app_server_api_calls_table = "chotuve.app_server_api_calls"
     database.server_alias = "test"
-    return database
+    yield database
+    postgresql.close()
 
 def test_postgres_connection_error(monkeypatch, statistics_postgres_database):
     aux_connect = psycopg2.connect

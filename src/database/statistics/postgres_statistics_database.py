@@ -4,6 +4,7 @@ from src.database.statistics.statistics_database import ApiCall, StatisticsDatab
 from typing import NoReturn, Generator, List, Optional, Tuple
 import logging
 import math
+from src.database.utils.postgres_connection import PostgresUtils
 
 DEFAULT_BATCH_SIZE = 100
 
@@ -24,6 +25,7 @@ WHERE alias = %s AND datetime > NOW() - INTERVAL '30 days'
 LIMIT %s OFFSET %s;
 """
 
+
 class PostgresStatisticsDatabase(StatisticsDatabase):
     """
     Api statistics database
@@ -37,9 +39,10 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
 
         self.app_server_api_calls_table = app_server_api_calls_table
         self.server_alias = os.environ[server_alias_env_name]
-        self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
-                                     password=os.environ[postgr_pass_env_name],
-                                     database=os.environ[postgr_database_env_name])
+        self.conn = PostgresUtils.get_postgres_connection(host=os.environ[postgr_host_env_name],
+                                                          user=os.environ[postgr_user_env_name],
+                                                          password=os.environ[postgr_pass_env_name],
+                                                          database=os.environ[postgr_database_env_name])
         if self.conn.closed == 0:
             self.logger.info("Connected to postgres database")
         else:
@@ -77,14 +80,16 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
         cursor = self.conn.cursor()
 
         self.safe_query_run(self.conn, cursor,
-                            COUNT_ROWS_API_CALLS_QUERY.format(app_server_api_calls_table=self.app_server_api_calls_table),
+                            COUNT_ROWS_API_CALLS_QUERY.format(
+                                app_server_api_calls_table=self.app_server_api_calls_table),
                             (self.server_alias,))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / DEFAULT_BATCH_SIZE))
         for page in range(pages):
             self.safe_query_run(self.conn, cursor,
-                                GET_PAGINATED_API_CALLS_QUERY.format(app_server_api_calls_table=self.app_server_api_calls_table),
+                                GET_PAGINATED_API_CALLS_QUERY.format(
+                                    app_server_api_calls_table=self.app_server_api_calls_table),
                                 (self.server_alias, DEFAULT_BATCH_SIZE, page * DEFAULT_BATCH_SIZE))
             result = cursor.fetchall()
             # path, status, datetime, "time", method

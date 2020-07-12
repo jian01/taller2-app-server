@@ -7,6 +7,7 @@ from typing import NamedTuple
 import requests
 import os
 from io import BytesIO
+from src.database.utils.postgres_connection import PostgresUtils
 
 class FakePostgres(NamedTuple):
     closed: int
@@ -30,6 +31,8 @@ def notifications_postgres_database(monkeypatch, postgresql):
     os.environ["DUMB_ENV_NAME"] = "{}"
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
+    monkeypatch.setattr(PostgresUtils, "get_postgres_connection",
+                        lambda *args, **kwargs: psycopg2.connect(*args, **kwargs))
     database = PostgresExpoNotificationDatabase(*(["DUMB_ENV_NAME"] * 5))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/notifications_database/config/initialize_db.sql", "r") as initialize_query:
@@ -39,7 +42,8 @@ def notifications_postgres_database(monkeypatch, postgresql):
         cursor.close()
     database.conn = postgresql
     database.notification_tokens_table_name = "chotuve.user_notification_tokens"
-    return database
+    yield database
+    postgresql.close()
 
 def test_postgres_connection_error(monkeypatch, notifications_postgres_database):
     aux_connect = psycopg2.connect

@@ -5,6 +5,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from nltk import word_tokenize
+from src.database.utils.postgres_connection import PostgresUtils
 
 DATE_SCORE_PONDER = 0.2
 VIDEO_COUNT_PONDER = 0.05
@@ -141,9 +142,10 @@ class PostgresVideoDatabase(VideoDatabase):
         self.users_table_name = users_table_name
         self.video_reactions_table_name = video_reactions_table_name
         self.video_comments_table_name = video_comments_table_name
-        self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
-                                     password=os.environ[postgr_pass_env_name],
-                                     database=os.environ[postgr_database_env_name])
+        self.conn = PostgresUtils.get_postgres_connection(host=os.environ[postgr_host_env_name],
+                                                          user=os.environ[postgr_user_env_name],
+                                                          password=os.environ[postgr_pass_env_name],
+                                                          database=os.environ[postgr_database_env_name])
         if self.conn.closed == 0:
             self.logger.info("Connected to postgres database")
         else:

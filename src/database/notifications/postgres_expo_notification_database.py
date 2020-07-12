@@ -6,6 +6,7 @@ import psycopg2
 import os
 import logging
 import requests
+from src.database.utils.postgres_connection import PostgresUtils
 
 NOTIFICATION_TOKEN_SAVE = """
 DELETE FROM {notification_tokens_table_name}
@@ -38,9 +39,10 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
                  postgr_host_env_name: str, postgr_user_env_name: str,
                  postgr_pass_env_name: str, postgr_database_env_name: str):
         self.notification_tokens_table_name = notification_tokens_table_name
-        self.conn = psycopg2.connect(host=os.environ[postgr_host_env_name], user=os.environ[postgr_user_env_name],
-                                     password=os.environ[postgr_pass_env_name],
-                                     database=os.environ[postgr_database_env_name])
+        self.conn = PostgresUtils.get_postgres_connection(host=os.environ[postgr_host_env_name],
+                                                          user=os.environ[postgr_user_env_name],
+                                                          password=os.environ[postgr_pass_env_name],
+                                                          database=os.environ[postgr_database_env_name])
         if self.conn.closed == 0:
             self.logger.info("Connected to postgres database")
         else:
