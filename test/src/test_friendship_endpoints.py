@@ -34,6 +34,8 @@ class TestFriendshipEndpoints(unittest.TestCase):
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
         self.notification_database_init = PostgresExpoNotificationDatabase.__init__
         self.notify = PostgresExpoNotificationDatabase.notify
+        self.mock_notify = MagicMock(return_value=None)
+        PostgresExpoNotificationDatabase.notify = self.mock_notify
         PostgresExpoNotificationDatabase.__init__ = lambda *args, **kwargs: None
         self.app = create_application()
         self.app.testing = True
@@ -69,13 +71,11 @@ class TestFriendshipEndpoints(unittest.TestCase):
 
     def test_user_friend_request_ok(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
-        mock_notify = MagicMock(return_value=None)
-        PostgresExpoNotificationDatabase.notify = mock_notify
         with self.app.test_client() as c:
             response = c.post('/user/friend_request', json={"other_user_email": "gian@asd.com"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(mock_notify.called)
+            self.assertTrue(self.mock_notify.called)
 
     def test_user_friend_request_unexistent_requestor(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")

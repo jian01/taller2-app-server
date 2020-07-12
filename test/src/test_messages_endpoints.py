@@ -33,6 +33,9 @@ class TestMessagesEndpoints(unittest.TestCase):
         os.environ["MEDIA_ENDPOINT_URL"] = "google.com"
         requests.post = MagicMock(return_value=MockResponse({"api_key": "dummy"}, 200))
         self.notification_database_init = PostgresExpoNotificationDatabase.__init__
+        self.notify = PostgresExpoNotificationDatabase.notify
+        self.mock_notify = MagicMock(return_value=None)
+        PostgresExpoNotificationDatabase.notify = self.mock_notify
         PostgresExpoNotificationDatabase.__init__ = lambda *args, **kwargs: None
         self.app = create_application()
         self.app.testing = True
@@ -62,6 +65,7 @@ class TestMessagesEndpoints(unittest.TestCase):
         AuthServer.profile_query = self.profile_query
         RamFriendDatabase.create_friend_request = self.create_friend_request
         PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
+        PostgresExpoNotificationDatabase.notify = self.notify
 
     def test_send_message_not_json(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
@@ -166,6 +170,7 @@ class TestMessagesEndpoints(unittest.TestCase):
                                                      "message": "hola"},
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(self.mock_notify.called)
 
             AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
             response = c.post('/user/message', json={"other_user_email": "asd@asd.com",

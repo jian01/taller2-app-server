@@ -632,6 +632,12 @@ class Controller:
         except UsersAreNotFriendsError:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
+        self.notification_database.notify(content["other_user_email"],
+                                          "Message from %s" % email_token,
+                                          "%s" % content["message"],
+                                          {"kind": "message",
+                                           "from": email_token,
+                                           "message": content["message"]})
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
