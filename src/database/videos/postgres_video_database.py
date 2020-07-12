@@ -1,11 +1,13 @@
 import psycopg2
 from typing import NoReturn, List, Optional, NamedTuple, Tuple, Dict
 from src.database.videos.video_database import VideoData, VideoDatabase, Reaction, Comment
+from src.database.videos.exceptions.no_more_videos_error import NoMoreVideosError
 import logging
 import os
 from datetime import datetime, timedelta
 from nltk import word_tokenize
 from src.database.utils.postgres_connection import PostgresUtils
+import math
 
 DATE_SCORE_PONDER = 0.2
 VIDEO_COUNT_PONDER = 0.05
@@ -121,6 +123,22 @@ FROM {video_comments_table_name} vc
 INNER JOIN {users_table_name} as u
 ON u.email = vc.author_email
 WHERE vc.video_owner_email = %s AND vc.video_title = %s
+"""
+
+COUNT_VIDEOS_QUERY = """
+SELECT COUNT(*) FROM {videos_table_name}
+"""
+
+GET_PAGINATED_VIDEOS_QUERY = """
+SELECT user_email, u.fullname, u.phone_number, u.photo, title, creation_time, visible, location, file_location, description, like_count, dislike_count
+FROM (
+SELECT * FROM (
+{video_with_likes}
+) AS video_with_likes) as v
+INNER JOIN {users_table_name} as u
+ON u.email = v.user_email
+ORDER BY creation_time DESC
+LIMIT %s OFFSET %s;
 """
 
 LIKE_SEARCH_TITLE_ELEMENT = "LOWER(title) LIKE '%{}%'"
@@ -424,3 +442,47 @@ class PostgresVideoDatabase(VideoDatabase):
                          "photo": r[3]} for r in result]
         cursor.close()
         return result_users, result_comments
+
+    def get_paginated_videos(self, page: int, per_page: int) -> Tuple[
+        List[Tuple[Dict, VideoData, Dict[Reaction, int]]], int]:
+        """
+        Get all the videos paginated
+
+        :raises:
+            NoMoreVideosError: if the page does not exist, page 0 always exist
+
+        :param page: the page requested
+        :param per_page: the amount of videos per page
+        :return: a list of (user data, video data, reactions counts) and the number of pages
+        """
+        self.logger.debug("Geting paginated videos for page %d with %d per page" % (page, per_page))
+
+        cursor = self.conn.cursor()
+
+        self.safe_query_run(self.conn, cursor,
+                            COUNT_VIDEOS_QUERY.format(videos_table_name=self.videos_table_name))
+        result = cursor.fetchone()
+
+        pages = int(math.ceil(result[0] / per_page))
+        if not page < pages and page != 0:
+            raise NoMoreVideosError
+
+        self.safe_query_run(self.conn, cursor,
+                            GET_PAGINATED_VIDEOS_QUERY.format(
+                                video_with_likes=VIDEO_WITH_LIKES_QUERY.format(
+                                    videos_table_name=self.videos_table_name,
+                                    video_reactions_table_name=self.video_reactions_table_name),
+                                users_table_name=self.users_table_name),
+                            (per_page, page * per_page))
+        result = cursor.fetchall()
+        self.conn.commit()
+        cursor.close()
+        # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
+        result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
+                                   file_location=r[8], description=r[9])
+                         for r in result]
+        result_emails = [{"email": r[0], "fullname": r[1], "phone_number": r[2],
+                          "photo": r[3]} for r in result]
+        result_reactions = [{Reaction.like: r[10], Reaction.dislike: r[11]} for r in result]
+
+        return list(zip(result_emails, result_videos, result_reactions)), pages
