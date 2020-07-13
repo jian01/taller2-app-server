@@ -111,7 +111,7 @@ class PostgresFriendDatabase(FriendDatabase):
     """
     Postgres implementation of Friend database
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
 
     def __init__(self, friends_table_name: str, friend_requests_table_name: str,
                  user_messages_table_name: str, users_table_name: str,

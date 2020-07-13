@@ -30,7 +30,7 @@ class AuthServer:
     """
     The connection to the auth server
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
     def __init__(self, auth_server_url_env_name: str, auth_server_secret_env_name: str,
                  server_alias_env_name: str, server_health_endpoint_url_env_name: str):
         """

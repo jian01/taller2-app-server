@@ -15,7 +15,7 @@ La app se crea actualmente en create_application.py, eventualmente necesitara re
 Una [convencion de python](https://docs.python.org/3/howto/logging.html) es crear un logger por cada clase diferenciada de la siguiente forma:
 
 ```
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__module__)
 ```
 
 Vamos a mantener esa convencion para cada clase y loggear con eso.

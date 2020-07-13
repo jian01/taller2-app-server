@@ -17,7 +17,7 @@ class MediaServer:
     """
     media_url: str
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
     def __init__(self, media_server_url_env_name: str):
         """
 

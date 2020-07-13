@@ -33,7 +33,7 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
     """
     Notifications database
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
 
     def __init__(self, notification_tokens_table_name: str,
                  postgr_host_env_name: str, postgr_user_env_name: str,

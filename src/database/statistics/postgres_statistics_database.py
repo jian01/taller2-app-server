@@ -30,7 +30,7 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
     """
     Api statistics database
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
 
     def __init__(self, app_server_api_calls_table: str,
                  server_alias_env_name: str,

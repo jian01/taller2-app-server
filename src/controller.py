@@ -48,7 +48,7 @@ VIDEO_COMMENT_MANDATORY_FIELDS = {"target_email", "video_title", "comment"}
 
 
 class Controller:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
 
     def __init__(self, auth_server: AuthServer,
                  media_server: MediaServer,
@@ -670,12 +670,11 @@ class Controller:
         except UsersAreNotFriendsError:
             self.logger.debug(messages.USER_NOT_AUTHORIZED_ERROR)
             return messages.ERROR_JSON % messages.USER_NOT_AUTHORIZED_ERROR, 403
-        sender_data = self.auth_server.profile_query(email_token)
         self.notification_database.notify(content["other_user_email"],
                                           "Message from %s" % email_token,
                                           "%s" % content["message"],
                                           {"kind": "message",
-                                           "from": sender_data,
+                                           "from": email_token,
                                            "message": content["message"]})
         return messages.SUCCESS_JSON, 200
 

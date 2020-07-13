@@ -149,7 +149,7 @@ class PostgresVideoDatabase(VideoDatabase):
     """
     Postgres & Firebase implementation of Database abstraction
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__module__)
 
     def __init__(self, videos_table_name: str, users_table_name: str,
                  video_reactions_table_name: str, video_comments_table_name: str,
