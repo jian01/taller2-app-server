@@ -116,6 +116,7 @@ class TestMessagesEndpoints(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
 
     def test_send_and_get_messages(self):
+        AuthServer.profile_query = MagicMock(return_value={})
         with self.app.test_client() as c:
             AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
             response = c.post('/user/message', json={"other_user_email": "gian@asd.com",
@@ -163,6 +164,7 @@ class TestMessagesEndpoints(unittest.TestCase):
             self.assertEqual(messages["messages"][1]["message"], "hola")
 
     def test_send_and_get_conversations(self):
+        AuthServer.profile_query = MagicMock(return_value={})
         with self.app.test_client() as c:
             # Conversacion 1
             AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
