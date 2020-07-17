@@ -224,4 +224,16 @@ create table chotuve.user_notification_tokens
 create unique index user_notification_tokens_token_uindex
 	on chotuve.user_notification_tokens (token);
 
+create table chotuve.deleted_messages
+(
+	id int
+		constraint deleted_messages_user_messages_id_fk
+			references chotuve.user_messages (id),
+	deletor varchar
+		constraint deleted_messages_users_email_fk
+			references chotuve.users,
+	constraint deleted_messages_pk
+		primary key (id, deletor)
+);
+
 ```

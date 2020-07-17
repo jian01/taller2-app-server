@@ -1,4 +1,4 @@
-from typing import NoReturn, List, NamedTuple, Tuple, Dict
+from typing import NoReturn, List, NamedTuple, Tuple, Dict, Optional, Set
 from abc import abstractmethod
 from datetime import datetime
 
@@ -11,6 +11,7 @@ class PrivateMessage(NamedTuple):
     to_user: str
     timestamp: datetime
     message: str
+    hidden_to: Optional[Set[str]] = None
 
 
 class FriendDatabase:
@@ -121,7 +122,7 @@ class FriendDatabase:
         """
 
     @abstractmethod
-    def get_conversation(self, user1_email: str, user2_email: str,
+    def get_conversation(self, requestor_email: str, other_user_email: str,
                          per_page: int, page: int) -> Tuple[List[PrivateMessage], int]:
         """
         Get the paginated conversation between user1 and user2
@@ -129,8 +130,8 @@ class FriendDatabase:
         :raises:
             NoMoreMessagesError: the page has no messages
 
-        :param user1_email: the email of user1
-        :param user2_email: the email of user2
+        :param requestor_email: the email of user1
+        :param other_user_email: the email of user2
         :param per_page: the messages per page
         :param page: the page for the message, starting from 0
         :return: the list of private messages and the number of pages
@@ -143,6 +144,15 @@ class FriendDatabase:
 
         :param user_email: the email of the user for getting the conversations
         :return: a tuple (list of user data, list of last private message)
+        """
+
+    @abstractmethod
+    def delete_conversation(self, deletor_email: str, deleted_email: str) -> NoReturn:
+        """
+        Deletes the conversation between two users but just for the deletor
+
+        :param deletor_email: the email of the one that deletes the conversation
+        :param deleted_email: the email of the other user of the conversation
         """
 
     @classmethod

@@ -794,6 +794,31 @@ paths:
           description: No more messages
           content: {}
       x-codegen-request-body-name: body
+    delete:
+      tags:
+        - messages
+      summary: Delete messages with a user
+      description: Delete messages with a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: other_user_email
+          in: query
+          description: The user's to get the messages
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Missing fields
+          content: {}
+        401:
+          description: Access token is missing or invalid
+          content: {}
+      x-codegen-request-body-name: body
   /user/last_conversations:
     get:
       tags:

@@ -79,6 +79,18 @@ alter table chotuve.user_messages
 	add constraint user_messages_pk
 		primary key (id);
 
+create table chotuve.deleted_messages
+(
+	id int
+		constraint deleted_messages_user_messages_id_fk
+			references chotuve.user_messages (id),
+	deletor varchar
+		constraint deleted_messages_users_email_fk
+			references chotuve.users,
+	constraint deleted_messages_pk
+		primary key (id, deletor)
+);
+
 INSERT INTO chotuve.users (email, fullname, phone_number, photo, password, admin)
 VALUES ('giancafferata@hotmail.com', 'Gianmarco', '1111', 'asd', 'asd123', false);
 

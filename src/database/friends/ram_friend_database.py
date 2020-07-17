@@ -155,7 +155,7 @@ class RamFriendDatabase(FriendDatabase):
                                  timestamp=datetime.now(), message=message)
         self.messages[(from_user_email, to_user_email)].append(message)
 
-    def get_conversation(self, user1_email: str, user2_email: str,
+    def get_conversation(self, requestor_email: str, other_user_email: str,
                          per_page: int, page: int) -> Tuple[List[PrivateMessage], int]:
         """
         Get the paginated conversation between user1 and user2
@@ -163,17 +163,18 @@ class RamFriendDatabase(FriendDatabase):
         :raises:
             NoMoreMessagesError: the page has no messages
 
-        :param user1_email: the email of user1
-        :param user2_email: the email of user2
+        :param requestor_email: the email of user1
+        :param other_user_email: the email of user2
         :param per_page: the messages per page
         :param page: the page for the message, starting from 0
         :return: the list of private messages and the number of pages
         """
         total_messages = []
-        if (user1_email, user2_email) in self.messages:
-            total_messages += self.messages[(user1_email, user2_email)]
-        if (user2_email, user1_email) in self.messages:
-            total_messages += self.messages[(user2_email, user1_email)]
+        if (requestor_email, other_user_email) in self.messages:
+            total_messages += self.messages[(requestor_email, other_user_email)]
+        if (other_user_email, requestor_email) in self.messages:
+            total_messages += self.messages[(other_user_email, requestor_email)]
+        total_messages = [m for m in total_messages if not m.hidden_to or requestor_email not in m.hidden_to]
         total_messages = sorted(total_messages, key=lambda x: x.timestamp, reverse=True)
         pages = int(math.ceil(len(total_messages)/per_page))
         if not page < pages and page != 0:
@@ -190,7 +191,9 @@ class RamFriendDatabase(FriendDatabase):
         user_messages_keys = [(u1, u2) for u1, u2 in self.messages.keys() if u1 == user_email or u2 == user_email]
         last_messages = []
         for key in user_messages_keys:
-            last_messages.append(self.messages[key][-1])
+            visible_messages = [m for m in self.messages[key] if not m.hidden_to or user_email not in m.hidden_to]
+            if visible_messages:
+                last_messages.append(visible_messages[-1])
         last_messages = sorted(last_messages, key=lambda x: x.timestamp, reverse=True)
 
         already_considered_users = []
@@ -199,7 +202,39 @@ class RamFriendDatabase(FriendDatabase):
             other_user = (m.from_user if m.from_user != user_email else m.to_user)
             if other_user in already_considered_users:
                 continue
-            already_considered_users.append({"email": other_user})
+            already_considered_users.append(other_user)
             last_messages_per_user.append(m)
 
-        return already_considered_users, last_messages
+        already_considered_users = [{"email":e} for e in already_considered_users]
+
+        return already_considered_users, last_messages_per_user
+
+    def delete_conversation(self, deletor_email: str, deleted_email: str) -> NoReturn:
+        """
+        Deletes the conversation between two users but just for the deletor
+
+        :param deletor_email: the email of the one that deletes the conversation
+        :param deleted_email: the email of the other user of the conversation
+        """
+        if (deletor_email, deleted_email) in self.messages:
+            for i in range(len(self.messages[(deletor_email, deleted_email)])):
+                if self.messages[(deletor_email, deleted_email)][i].hidden_to:
+                    self.messages[(deletor_email, deleted_email)][i].hidden_to.update([deletor_email])
+                else:
+                    previous_pm = self.messages[(deletor_email, deleted_email)][i]
+                    self.messages[(deletor_email, deleted_email)][i] = PrivateMessage(from_user=previous_pm.from_user,
+                                                                                      to_user=previous_pm.to_user,
+                                                                                      timestamp=previous_pm.timestamp,
+                                                                                      message=previous_pm.message,
+                                                                                      hidden_to={deletor_email})
+        if (deleted_email, deletor_email) in self.messages:
+            for i in range(len(self.messages[(deleted_email, deletor_email)])):
+                if self.messages[(deleted_email, deletor_email)][i].hidden_to:
+                    self.messages[(deleted_email, deletor_email)][i].hidden_to.update([deletor_email])
+                else:
+                    previous_pm = self.messages[(deleted_email, deletor_email)][i]
+                    self.messages[(deleted_email, deletor_email)][i] = PrivateMessage(from_user=previous_pm.from_user,
+                                                                                      to_user=previous_pm.to_user,
+                                                                                      timestamp=previous_pm.timestamp,
+                                                                                      message=previous_pm.message,
+                                                                                      hidden_to={deletor_email})

@@ -17,7 +17,7 @@ def friend_postgres_database(monkeypatch, postgresql):
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(0))
     monkeypatch.setattr(PostgresUtils, "get_postgres_connection", lambda *args, **kwargs: psycopg2.connect(*args, **kwargs))
-    database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"]*8))
+    database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"]*9))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
     with open("test/src/database/friend_database/config/initialize_db.sql", "r") as initialize_query:
         cursor = postgresql.cursor()
@@ -29,6 +29,7 @@ def friend_postgres_database(monkeypatch, postgresql):
     database.friend_requests_table_name = "chotuve.friend_requests"
     database.user_messages_table_name = "chotuve.user_messages"
     database.users_table_name = "chotuve.users"
+    database.user_deleted_messages_table_name = "chotuve.deleted_messages"
     yield database
     postgresql.close()
 
@@ -36,7 +37,7 @@ def test_postgres_connection_error(monkeypatch, friend_postgres_database):
     aux_connect = psycopg2.connect
     monkeypatch.setattr(psycopg2, "connect", lambda *args, **kwargs: FakePostgres(1))
     with pytest.raises(ConnectionError):
-        database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"] * 8))
+        database = PostgresFriendDatabase(*(["DUMB_ENV_NAME"] * 9))
     monkeypatch.setattr(psycopg2, "connect", aux_connect)
 
 def test_create_friend_request_ok(monkeypatch, friend_postgres_database):
@@ -176,3 +177,45 @@ def test_send_messages_and_get_last_conversations(monkeypatch, friend_postgres_d
     assert user_data[1]["email"] == 'cafferatagian@hotmail.com'
     assert message_data[0].message == 'Hola'
     assert message_data[1].message == 'see'
+
+def test_delete_conversation(monkeypatch, friend_postgres_database):
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'asd@asd.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'asd@asd.com')
+    friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                          "Hola")
+    friend_postgres_database.send_message('giancafferata@hotmail.com', 'cafferatagian@hotmail.com',
+                                          "todo bien?")
+    friend_postgres_database.delete_conversation('giancafferata@hotmail.com', 'cafferatagian@hotmail.com')
+    friend_postgres_database.send_message('cafferatagian@hotmail.com','giancafferata@hotmail.com',
+                                          "see")
+    friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                          "te felicito master")
+    conv, pages = friend_postgres_database.get_conversation('giancafferata@hotmail.com','cafferatagian@hotmail.com', 2, 0)
+    assert pages == 1
+    assert len(conv) == 2
+    assert conv[0].message == "te felicito master"
+    assert conv[1].message == "see"
+
+    conv, pages = friend_postgres_database.get_conversation('cafferatagian@hotmail.com','giancafferata@hotmail.com', 4, 0)
+    assert pages == 1
+    assert len(conv) == 4
+    assert conv[0].message == "te felicito master"
+    assert conv[1].message == "see"
+    assert conv[2].message == "todo bien?"
+    assert conv[3].message == "Hola"
+    friend_postgres_database.delete_conversation('cafferatagian@hotmail.com', 'giancafferata@hotmail.com')
+    conv, pages = friend_postgres_database.get_conversation('cafferatagian@hotmail.com','giancafferata@hotmail.com', 4, 0)
+    assert pages == 0
+    assert len(conv) == 0
+    user_data, message_data = friend_postgres_database.get_conversations('cafferatagian@hotmail.com')
+    assert len(user_data) == 0
+    assert len(message_data) == 0
+    user_data, message_data = friend_postgres_database.get_conversations('giancafferata@hotmail.com')
+    assert len(user_data) == 1
+    assert len(message_data) == 1

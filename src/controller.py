@@ -682,7 +682,7 @@ class Controller:
     @auth.login_required
     def get_messages(self):
         """
-        Get the messages paginated
+        Get the messages between two users paginated
         :return: a json with the messages on success or an error in another case
         """
         other_user_email = request.args.get('other_user_email')
@@ -701,10 +701,25 @@ class Controller:
         except NoMoreMessagesError:
             self.logger.debug(messages.NO_MORE_PAGES_ERROR)
             return messages.NO_MORE_PAGES_ERROR, 404
-        message_list = [m._asdict() for m in message_list]
+        message_list = [{k:v for k,v in m._asdict().items() if k != "hidden_to"} for m in message_list]
         for i in range(len(message_list)):
             message_list[i]["timestamp"] = message_list[i]["timestamp"].isoformat()
         return json.dumps({"messages": message_list, "pages": pages}), 200
+
+    @register_api_call
+    @auth.login_required
+    def delete_messages(self):
+        """
+        One user deletes its messages with other one
+        :return: a json with the messages on success or an error in another case
+        """
+        other_user_email = request.args.get('other_user_email')
+        if not other_user_email:
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "other_user_email")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other_user_email", 400
+        email_token = auth.current_user()[0]
+        self.friend_database.delete_conversation(email_token, other_user_email)
+        return messages.SUCCESS_JSON, 200
 
     @register_api_call
     @auth.login_required
@@ -716,7 +731,7 @@ class Controller:
         """
         email_token = auth.current_user()[0]
         user_data, last_messages = self.friend_database.get_conversations(email_token)
-        last_messages = [m._asdict() for m in last_messages]
+        last_messages = [{k:v for k,v in m._asdict().items() if k != "hidden_to"} for m in last_messages]
         for i in range(len(last_messages)):
             last_messages[i]["timestamp"] = last_messages[i]["timestamp"].isoformat()
         response = []

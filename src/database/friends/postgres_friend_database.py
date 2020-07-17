@@ -66,15 +66,21 @@ VALUES (%s, %s, %s, %s)
 
 GET_PAGINATED_CONVERSATION_QUERY = """
 SELECT from_user, to_user, message, datetime
-FROM {}
-WHERE (from_user=%s AND to_user=%s) OR (to_user=%s AND from_user=%s)
+FROM {user_messages_table_name}
+WHERE ((from_user=%s AND to_user=%s) OR (to_user=%s AND from_user=%s))
+AND id NOT IN (
+SELECT id FROM {user_deleted_messages_table_name} WHERE deletor = %s
+)
 ORDER BY datetime DESC
 LIMIT %s OFFSET %s;
 """
 
 COUNT_ROWS_CONVERSATION_QUERY = """
-SELECT COUNT(*) FROM {}
-WHERE (from_user=%s AND to_user=%s) OR (to_user=%s AND from_user=%s)
+SELECT COUNT(*) FROM {user_messages_table_name}
+WHERE ((from_user=%s AND to_user=%s) OR (to_user=%s AND from_user=%s))
+AND id NOT IN (
+SELECT id FROM {user_deleted_messages_table_name} WHERE deletor = %s
+)
 """
 
 GET_CONVERSATIONS_QUERY = """
@@ -98,12 +104,25 @@ SELECT max(datetime) as datetime,
   END 
   AS other_user
 FROM {user_messages_table_name}
-WHERE from_user=%s OR to_user=%s
+WHERE (from_user=%s OR to_user=%s)
+AND id NOT IN (
+SELECT id FROM {user_deleted_messages_table_name} WHERE deletor = %s
+)
 GROUP BY 2
 ) as last_messages
 ON messages.other_user=last_messages.other_user AND messages.datetime=last_messages.datetime
 INNER JOIN {users_table_name} as u
 ON u.email=messages.other_user
+"""
+
+DELETE_CONVERSATION_QUERY = """
+INSERT INTO {user_deleted_messages_table_name}(id, deletor)
+SELECT ids_values.id, %s
+FROM (SELECT id FROM {user_messages_table_name}
+WHERE ((from_user=%s AND to_user=%s) OR (to_user=%s AND from_user=%s))
+AND id NOT IN (
+SELECT id FROM {user_deleted_messages_table_name} WHERE deletor = %s
+)) ids_values
 """
 
 
@@ -115,6 +134,7 @@ class PostgresFriendDatabase(FriendDatabase):
 
     def __init__(self, friends_table_name: str, friend_requests_table_name: str,
                  user_messages_table_name: str, users_table_name: str,
+                 user_deleted_messages_table_name: str,
                  postgr_host_env_name: str, postgr_user_env_name: str,
                  postgr_pass_env_name: str, postgr_database_env_name: str):
 
@@ -122,6 +142,7 @@ class PostgresFriendDatabase(FriendDatabase):
         self.friend_requests_table_name = friend_requests_table_name
         self.user_messages_table_name = user_messages_table_name
         self.users_table_name = users_table_name
+        self.user_deleted_messages_table_name = user_deleted_messages_table_name
         self.conn = PostgresUtils.get_postgres_connection(host=os.environ[postgr_host_env_name],
                                                           user=os.environ[postgr_user_env_name],
                                                           password=os.environ[postgr_pass_env_name],
@@ -318,7 +339,7 @@ class PostgresFriendDatabase(FriendDatabase):
         self.conn.commit()
         cursor.close()
 
-    def get_conversation(self, user1_email: str, user2_email: str,
+    def get_conversation(self, requestor_email: str, other_user_email: str,
                          per_page: int, page: int) -> Tuple[List[PrivateMessage], int]:
         """
         Get the paginated conversation between user1 and user2
@@ -326,19 +347,20 @@ class PostgresFriendDatabase(FriendDatabase):
         :raises:
             NoMoreMessagesError: the page has no messages
 
-        :param user1_email: the email of user1
-        :param user2_email: the email of user2
+        :param requestor_email: the email of user1
+        :param other_user_email: the email of user2
         :param per_page: the messages per page
         :param page: the page for the message, starting from 0
         :return: the list of private messages and the number of pages
         """
-        self.logger.debug("Geting conversation between %s and %s" % (user1_email, user2_email))
+        self.logger.debug("Geting conversation between %s and %s" % (requestor_email, other_user_email))
 
         cursor = self.conn.cursor()
 
         self.safe_query_run(self.conn, cursor,
-                            COUNT_ROWS_CONVERSATION_QUERY.format(self.user_messages_table_name),
-                            (user1_email, user2_email, user1_email, user2_email))
+                            COUNT_ROWS_CONVERSATION_QUERY.format(user_messages_table_name=self.user_messages_table_name,
+                                                                 user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                            (requestor_email, other_user_email, requestor_email, other_user_email, requestor_email))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / per_page))
@@ -346,9 +368,10 @@ class PostgresFriendDatabase(FriendDatabase):
             raise NoMoreMessagesError()
 
         self.safe_query_run(self.conn, cursor,
-                            GET_PAGINATED_CONVERSATION_QUERY.format(self.user_messages_table_name),
-                            (user1_email, user2_email, user1_email, user2_email, per_page,
-                             page * per_page))
+                            GET_PAGINATED_CONVERSATION_QUERY.format(user_messages_table_name=self.user_messages_table_name,
+                                                                    user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                            (requestor_email, other_user_email, requestor_email, other_user_email, requestor_email,
+                             per_page, page * per_page))
         result = cursor.fetchall()
         self.conn.commit()
         cursor.close()
@@ -368,8 +391,9 @@ class PostgresFriendDatabase(FriendDatabase):
         cursor = self.conn.cursor()
         self.safe_query_run(self.conn, cursor,
                             GET_CONVERSATIONS_QUERY.format(user_messages_table_name=self.user_messages_table_name,
-                                                           users_table_name=self.users_table_name),
-                            (user_email,) * 6)
+                                                           users_table_name=self.users_table_name,
+                                                           user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                            (user_email,) * 7)
         '''
         u.email, u.fullname, u.phone_number, u.photo
         messages.from_user, messages.to_user, messages.message, messages.datetime
@@ -381,3 +405,19 @@ class PostgresFriendDatabase(FriendDatabase):
         self.conn.commit()
         cursor.close()
         return user_data, videos_data
+
+    def delete_conversation(self, deletor_email: str, deleted_email: str) -> NoReturn:
+        """
+        Deletes the conversation between two users but just for the deletor
+
+        :param deletor_email: the email of the one that deletes the conversation
+        :param deleted_email: the email of the other user of the conversation
+        """
+        self.logger.debug("%s deleting conversation with %s" % (deletor_email, deleted_email))
+        cursor = self.conn.cursor()
+        self.safe_query_run(self.conn, cursor,
+                            DELETE_CONVERSATION_QUERY.format(user_messages_table_name=self.user_messages_table_name,
+                                                             user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                            (deletor_email, deletor_email, deleted_email, deletor_email, deleted_email, deletor_email))
+        self.conn.commit()
+        cursor.close()
