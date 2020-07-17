@@ -211,6 +211,117 @@ class TestMessagesEndpoints(unittest.TestCase):
             self.assertEqual(last_conv[1]["user"]["email"], "gian@asd.com")
             self.assertEqual(last_conv[1]["last_message"]["message"], "dale")
 
+    def test_delete_conversation_missing_params(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.delete('/user/messages_with', query_string={},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 400)
+
+    def test_delete_conversation_empty_ok(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.delete('/user/messages_with', query_string={"other_user_email": "asd2@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+    def test_delete_two_different_views_ok(self):
+        with self.app.test_client() as c:
+            # Conversacion 1
+            AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+            response = c.post('/user/message', json={"other_user_email": "gian@asd.com",
+                                                     "message": "hola"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(self.mock_notify.called)
+
+            AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
+            response = c.post('/user/message', json={"other_user_email": "asd@asd.com",
+                                                     "message": "hola"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+            response = c.delete('/user/messages_with', query_string={"other_user_email": "asd@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+            AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+            response = c.post('/user/message', json={"other_user_email": "gian@asd.com",
+                                                     "message": "ke ondis, salen esas ricardas nudes?"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+            AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
+            response = c.post('/user/message', json={"other_user_email": "asd@asd.com",
+                                                     "message": "dale"},
+                              headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+
+            response = c.get('/user/messages_with', query_string={"other_user_email": "asd@asd.com",
+                                                                  "page": 1, "per_page": 10},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            messages = json.loads(response.data)
+            self.assertEqual(len(messages["messages"]), 2)
+            self.assertEqual(messages["pages"], 1)
+            self.assertEqual(messages["messages"][1]["message"], "ke ondis, salen esas ricardas nudes?")
+            self.assertEqual(messages["messages"][1]["from_user"], "asd@asd.com")
+            self.assertEqual(messages["messages"][0]["message"], "dale")
+            self.assertEqual(messages["messages"][0]["from_user"], "gian@asd.com")
+
+            AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+            response = c.get('/user/messages_with', query_string={"other_user_email": "gian@asd.com",
+                                                                  "page": 1, "per_page": 10},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            messages = json.loads(response.data)
+            self.assertEqual(len(messages["messages"]), 4)
+            self.assertEqual(messages["pages"], 1)
+            self.assertEqual(messages["messages"][3]["message"], "hola")
+            self.assertEqual(messages["messages"][3]["from_user"], "asd@asd.com")
+            self.assertEqual(messages["messages"][2]["message"], "hola")
+            self.assertEqual(messages["messages"][2]["from_user"], "gian@asd.com")
+            self.assertEqual(messages["messages"][1]["message"], "ke ondis, salen esas ricardas nudes?")
+            self.assertEqual(messages["messages"][1]["from_user"], "asd@asd.com")
+            self.assertEqual(messages["messages"][0]["message"], "dale")
+            self.assertEqual(messages["messages"][0]["from_user"], "gian@asd.com")
+
+            response = c.delete('/user/messages_with', query_string={"other_user_email": "gian@asd.com"},
+                                headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.get('/user/messages_with', query_string={"other_user_email": "gian@asd.com",
+                                                                  "page": 1, "per_page": 10},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            messages = json.loads(response.data)
+            self.assertEqual(len(messages["messages"]), 0)
+            response = c.get('/user/last_conversations',
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            last_conv = json.loads(response.data)
+            self.assertEqual(len(last_conv), 0)
+
+            AuthServer.get_logged_email = MagicMock(return_value="gian@asd.com")
+            response = c.get('/user/messages_with', query_string={"other_user_email": "asd@asd.com",
+                                                                  "page": 1, "per_page": 10},
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            messages = json.loads(response.data)
+            self.assertEqual(len(messages["messages"]), 2)
+            self.assertEqual(messages["pages"], 1)
+            self.assertEqual(messages["messages"][1]["message"], "ke ondis, salen esas ricardas nudes?")
+            self.assertEqual(messages["messages"][1]["from_user"], "asd@asd.com")
+            self.assertEqual(messages["messages"][0]["message"], "dale")
+            self.assertEqual(messages["messages"][0]["from_user"], "gian@asd.com")
+            response = c.get('/user/last_conversations',
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)
+            last_conv = json.loads(response.data)
+            self.assertEqual(len(last_conv), 1)
+
+
+
+
 
 
 

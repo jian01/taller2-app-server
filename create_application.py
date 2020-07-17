@@ -109,6 +109,8 @@ def create_application_with_controller(controller: Controller):
                      controller.send_message, methods=["POST"])
     app.add_url_rule('/user/messages_with', 'user_list_messages',
                      controller.get_messages, methods=["GET"])
+    app.add_url_rule('/user/messages_with', 'user_delete_messages',
+                     controller.delete_messages, methods=["DELETE"])
     app.add_url_rule('/user/last_conversations', 'last_conversations',
                      controller.get_last_conversations, methods=["GET"])
 
