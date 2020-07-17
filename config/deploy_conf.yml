@@ -31,6 +31,7 @@ friend_databases:
     friends_table_name: "chotuve.friends"
     friend_requests_table_name: "chotuve.friend_requests"
     user_messages_table_name: "chotuve.user_messages"
+    user_deleted_messages_table_name: "chotuve.deleted_messages"
     users_table_name: "chotuve.users"
     postgr_host_env_name: "POSTGRES_HOST"
     postgr_user_env_name: "POSTGRES_USER"
