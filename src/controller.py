@@ -110,8 +110,8 @@ class Controller:
                                            phone_number=content["phone_number"], photo=photo,
                                            plain_password=content["password"])
         except UserAlreadyRegisteredError:
-            self.logger.debug(messages.USER_ALREADY_REGISTERED_MESSAGE)
-            return messages.ERROR_JSON % messages.USER_ALREADY_REGISTERED_MESSAGE, 400
+            self.logger.debug(messages.USER_ALREADY_REGISTERED_MESSAGE % content["email"])
+            return messages.ERROR_JSON % messages.USER_ALREADY_REGISTERED_MESSAGE % content["email"], 400
         except InvalidRegisterFieldError as e:
             self.logger.debug(str(e))
             return messages.ERROR_JSON % str(e), 400
