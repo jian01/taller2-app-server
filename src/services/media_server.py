@@ -61,7 +61,7 @@ class MediaServer:
         """
         self.logger.debug("Deleting video for %s" % user_email)
         r = requests.delete(self.media_url + VIDEOS_ENDPOINT,
-                            query_string={"email": user_email, "title": title})
+                            params={"email": user_email, "title": title})
         if r.status_code == 404:
             raise UnexistentVideoError
         r.raise_for_status()
