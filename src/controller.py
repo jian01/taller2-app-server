@@ -135,7 +135,7 @@ class Controller:
             return messages.ERROR_JSON % (
                         messages.MISSING_FIELDS_ERROR % (LOGIN_MANDATORY_FIELDS - set(content.keys()))), 400
         try:
-            login_token = self.auth_server.user_login(email=content["email"], plain_password=content["password"])
+            login_dict = self.auth_server.user_login(email=content["email"], plain_password=content["password"])
         except InvalidCredentialsError:
             self.logger.debug(messages.WRONG_CREDENTIALS_MESSAGE)
             return messages.ERROR_JSON % messages.WRONG_CREDENTIALS_MESSAGE, 403
@@ -146,7 +146,7 @@ class Controller:
         if "notification_token" in content:
             self.notification_database.set_notification_token(content["email"], content["notification_token"])
 
-        return json.dumps({"login_token": login_token}), 200
+        return json.dumps(login_dict), 200
 
     @register_api_call
     @cross_origin()

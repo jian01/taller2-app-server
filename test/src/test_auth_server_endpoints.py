@@ -117,14 +117,14 @@ class TestAuthServerEndpoints(unittest.TestCase):
             self.assertEqual(response.status_code, 404)
 
     def test_login_ok(self):
-        AuthServer.user_login = MagicMock(return_value="asd123")
+        AuthServer.user_login = MagicMock(return_value={"login_token": "asd123"})
         with self.app.test_client() as c:
             response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123"})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(json.loads(response.data)["login_token"], "asd123")
 
     def test_login_ok_w_notification_token(self):
-        AuthServer.user_login = MagicMock(return_value="asd123")
+        AuthServer.user_login = MagicMock(return_value={"login_token": "asd123"})
         mock_set_notification = MagicMock(return_value=None)
         PostgresExpoNotificationDatabase.set_notification_token = mock_set_notification
         with self.app.test_client() as c:

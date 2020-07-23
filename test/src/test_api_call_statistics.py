@@ -55,7 +55,7 @@ class TestAppServerStatistics(unittest.TestCase):
         PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
 
     def test_login_and_get_statistics(self):
-        AuthServer.user_login = MagicMock(return_value="asd123")
+        AuthServer.user_login = MagicMock(return_value={"login_token": "asd123"})
         with self.app.test_client() as c:
             response = c.post('/user/login', json={"email": "giancafferata@hotmail.com", "password": "asd123"})
             self.assertEqual(response.status_code, 200)

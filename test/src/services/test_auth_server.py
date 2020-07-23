@@ -48,7 +48,7 @@ class TestAuthServer(unittest.TestCase):
 
     def test_valid_login(self):
         requests.post = MagicMock(return_value=MockResponse({"login_token": "dummy"}, 200))
-        self.assertEqual(self.auth_server.user_login("email@email.com", "asd123"), "dummy")
+        self.assertEqual(self.auth_server.user_login("email@email.com", "asd123"), {"login_token": "dummy"})
 
     def test_unexistent_user_login(self):
         requests.post = MagicMock(return_value=MockResponse({}, 404))

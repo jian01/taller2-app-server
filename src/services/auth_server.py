@@ -51,13 +51,13 @@ class AuthServer:
         self.api_key = response.json()["api_key"]
         self.logger.info("Connected to auth server")
 
-    def user_login(self, email: str, plain_password: str) -> str:
+    def user_login(self, email: str, plain_password: str) -> Dict:
         """
         Returns a login token for the user that logs in
 
         :param email: the email of the user
         :param plain_password: the password of the user
-        :return: a login token
+        :return: a dict with login data
         """
         self.logger.debug("Logging for user with email %s" % email)
         response = requests.post(self.auth_url+USER_LOGIN_ENDPOINT,
@@ -70,7 +70,7 @@ class AuthServer:
         if response.status_code == 404:
             raise UnexistentUserError
         response.raise_for_status()
-        return response.json()["login_token"]
+        return response.json()
 
     @lru_cache(maxsize=300)
     def get_logged_email(self, login_token: str) -> str:
