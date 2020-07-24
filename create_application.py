@@ -46,7 +46,8 @@ def create_application_with_controller(controller: Controller):
                                 "/user/login": {"origins": "*"},
                                 "/users": {"origins": "*"},
                                 "/user/video": {"origins": "*"},
-                                "/api_call_statistics": {"origins": "*"}})
+                                "/api_call_statistics": {"origins": "*"},
+                                "/videos": {"origins": "*"}})
 
     app.add_url_rule('/health', 'api_health', controller.api_health)
     app.add_url_rule('/users', 'registered_users', controller.registered_users,
