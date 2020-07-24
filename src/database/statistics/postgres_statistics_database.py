@@ -6,7 +6,7 @@ import logging
 import math
 from src.database.utils.postgres_connection import PostgresUtils
 
-DEFAULT_BATCH_SIZE = 100
+DEFAULT_BATCH_SIZE = 200
 
 ADD_API_CALL_QUERY = """
 INSERT INTO {app_server_api_calls_table} (alias, path, status, datetime, "time", method)
@@ -15,13 +15,13 @@ VALUES (%s, %s, %s, %s, %s, %s)
 
 COUNT_ROWS_API_CALLS_QUERY = """
 SELECT COUNT(*) FROM {app_server_api_calls_table}
-WHERE alias = %s
+WHERE alias = %s AND datetime > NOW() - INTERVAL '%s days'
 """
 
 GET_PAGINATED_API_CALLS_QUERY = """
 SELECT path, status, datetime, "time", method
 FROM {app_server_api_calls_table}
-WHERE alias = %s AND datetime > NOW() - INTERVAL '30 days'
+WHERE alias = %s AND datetime > NOW() - INTERVAL '%s days'
 LIMIT %s OFFSET %s;
 """
 
@@ -71,10 +71,11 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
         self.conn.commit()
         cursor.close()
 
-    def last_30_days_api_calls(self) -> Generator[List[ApiCall], None, None]:
+    def last_days_api_calls(self, days: int) -> Generator[List[ApiCall], None, None]:
         """
-        Gets a generator of the last 30 days api calls
+        Gets a generator of the last days api calls
 
+        :param days: the number of days back
         :return: a generator of lists of api calls
         """
         cursor = self.conn.cursor()
@@ -82,7 +83,7 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
         self.safe_query_run(self.conn, cursor,
                             COUNT_ROWS_API_CALLS_QUERY.format(
                                 app_server_api_calls_table=self.app_server_api_calls_table),
-                            (self.server_alias,))
+                            (self.server_alias, days))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / DEFAULT_BATCH_SIZE))
@@ -90,7 +91,7 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
             self.safe_query_run(self.conn, cursor,
                                 GET_PAGINATED_API_CALLS_QUERY.format(
                                     app_server_api_calls_table=self.app_server_api_calls_table),
-                                (self.server_alias, DEFAULT_BATCH_SIZE, page * DEFAULT_BATCH_SIZE))
+                                (self.server_alias, days, DEFAULT_BATCH_SIZE, page * DEFAULT_BATCH_SIZE))
             result = cursor.fetchall()
             # path, status, datetime, "time", method
             yield [ApiCall(path=r[0], status=r[1], timestamp=r[2],

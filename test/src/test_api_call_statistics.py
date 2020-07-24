@@ -54,6 +54,12 @@ class TestAppServerStatistics(unittest.TestCase):
         MediaServer.delete_video = self.delete_video
         PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
 
+    def test_get_statistics_missing_params(self):
+        AuthServer.user_login = MagicMock(return_value={"login_token": "asd123"})
+        with self.app.test_client() as c:
+            response = c.get('/api_call_statistics', query_string={"dias": 30})
+            self.assertEqual(response.status_code, 400)
+
     def test_login_and_get_statistics(self):
         AuthServer.user_login = MagicMock(return_value={"login_token": "asd123"})
         with self.app.test_client() as c:
@@ -64,16 +70,13 @@ class TestAppServerStatistics(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(json.loads(response.data)["login_token"], "asd123")
 
-            response = c.get('/api_call_statistics')
+            response = c.get('/api_call_statistics', query_string={"days": 30})
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(sum(json.loads(response.data)["last_30_days_users_logins"].values()), 2)
-            self.assertEqual(sum(json.loads(response.data)["last_30_days_api_call_amount"].values()), 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_path"]["/user/login"], 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_status"]['200'], 2)
-            self.assertEqual(len(json.loads(response.data)["last_30_days_api_calls_response_times"]), 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_method"]["POST"], 2)
-            self.assertEqual(list(json.loads(response.data)["last_30_day_mean_api_call_time"].values())[0],
-                             sum(json.loads(response.data)["last_30_days_api_calls_response_times"])/2)
+            self.assertEqual(sum(json.loads(response.data)["last_days_users_logins"].values()), 2)
+            self.assertEqual(sum(json.loads(response.data)["last_days_api_call_amount"].values()), 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_path"]["/user/login"], 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['200'], 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_method"]["POST"], 2)
 
     def test_user_upload_two_videos_and_get_statistics(self):
         AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
@@ -90,16 +93,13 @@ class TestAppServerStatistics(unittest.TestCase):
                               headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
 
-            response = c.get('/api_call_statistics')
+            response = c.get('/api_call_statistics', query_string={"days": 30})
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(sum(json.loads(response.data)["last_30_days_uploaded_videos"].values()), 2)
-            self.assertEqual(sum(json.loads(response.data)["last_30_days_api_call_amount"].values()), 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_path"]["/user/video"], 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_status"]['200'], 2)
-            self.assertEqual(len(json.loads(response.data)["last_30_days_api_calls_response_times"]), 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_method"]["POST"], 2)
-            self.assertEqual(list(json.loads(response.data)["last_30_day_mean_api_call_time"].values())[0],
-                             sum(json.loads(response.data)["last_30_days_api_calls_response_times"])/2)
+            self.assertEqual(sum(json.loads(response.data)["last_days_uploaded_videos"].values()), 2)
+            self.assertEqual(sum(json.loads(response.data)["last_days_api_call_amount"].values()), 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_path"]["/user/video"], 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['200'], 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_method"]["POST"], 2)
 
     def test_register_and_get_statistics(self):
         AuthServer.user_register = MagicMock(return_value=None)
@@ -115,14 +115,11 @@ class TestAppServerStatistics(unittest.TestCase):
                                              "phone_number": "11 1111-1111", "password": "asd123"})
             self.assertEqual(response.status_code, 400)
 
-            response = c.get('/api_call_statistics')
+            response = c.get('/api_call_statistics', query_string={"days": 30})
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(sum(json.loads(response.data)["last_30_days_user_registrations"].values()), 2)
-            self.assertEqual(sum(json.loads(response.data)["last_30_days_api_call_amount"].values()), 3)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_path"]["/user"], 3)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_status"]['200'], 2)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_status"]['400'], 1)
-            self.assertEqual(len(json.loads(response.data)["last_30_days_api_calls_response_times"]), 3)
-            self.assertEqual(json.loads(response.data)["last_30_days_api_calls_by_method"]["POST"], 3)
-            self.assertEqual(list(json.loads(response.data)["last_30_day_mean_api_call_time"].values())[0],
-                             sum(json.loads(response.data)["last_30_days_api_calls_response_times"])/3)
+            self.assertEqual(sum(json.loads(response.data)["last_days_user_registrations"].values()), 2)
+            self.assertEqual(sum(json.loads(response.data)["last_days_api_call_amount"].values()), 3)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_path"]["/user"], 3)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['200'], 2)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['400'], 1)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_method"]["POST"], 3)

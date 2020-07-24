@@ -1013,6 +1013,13 @@ paths:
         - statistics
       summary: Get api calls statistics
       description: Get api calls statistics
+      parameters:
+        - name: days
+          in: query
+          description: The days back to get the statistics
+          required: true
+          schema:
+            type: integer
       responses:
         200:
           description: Successful operation

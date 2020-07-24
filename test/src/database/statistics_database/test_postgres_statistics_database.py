@@ -43,7 +43,7 @@ def test_one_api_call_save_and_load(monkeypatch, statistics_postgres_database):
     test_api_call = ApiCall(path="/health",status=200,timestamp=datetime.now(), time=1.0,
                             method="GET")
     statistics_postgres_database.register_api_call(test_api_call)
-    api_call_generator = statistics_postgres_database.last_30_days_api_calls()
+    api_call_generator = statistics_postgres_database.last_days_api_calls(30)
     for api_calls in api_call_generator:
         assert len(api_calls) == 1
         for api_call in api_calls:
@@ -54,7 +54,7 @@ def test_multiple_api_calls_save_and_load(monkeypatch, statistics_postgres_datab
         test_api_call = ApiCall(path="/health",status=200,timestamp=datetime.now(), time=i*1.0,
                                 method="GET")
         statistics_postgres_database.register_api_call(test_api_call)
-    api_call_generator = statistics_postgres_database.last_30_days_api_calls()
+    api_call_generator = statistics_postgres_database.last_days_api_calls(30)
     api_call_count = 0
     times = set()
     for api_calls in api_call_generator:
