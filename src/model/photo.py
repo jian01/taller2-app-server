@@ -41,7 +41,7 @@ class Photo:
 
     @classmethod
     def from_bytes(cls, photo: BytesIO):
-        image = Image.open(photo)
+        image = Image.open(photo).convert("RGB")
         width, height = image.size
         ratio = width/height
         if width < height:

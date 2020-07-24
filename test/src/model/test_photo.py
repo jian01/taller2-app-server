@@ -66,3 +66,7 @@ class TestUnitsPhoto(unittest.TestCase):
         hash0 = imagehash.average_hash(image)
         hash1 = imagehash.average_hash(target_image)
         self.assertEqual(hash0 - hash1, 0)
+
+    def test_from_png(self):
+        with open("test_photos/transparency.png", "rb") as photo_file:
+            photo = Photo.from_bytes(BytesIO(photo_file.read()))
