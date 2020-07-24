@@ -170,14 +170,6 @@ class PostgresVideoDatabase(VideoDatabase):
             self.logger.error("Unable to connect to postgres database")
             raise ConnectionError("Unable to connect to postgres database")
 
-    @staticmethod
-    def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
-        try:
-            cursor.execute(query, params)
-        except Exception as err:
-            connection.rollback()
-            raise err
-
     def add_video(self, user_email: str, video_data: VideoData) -> NoReturn:
         """
         Adds a video to the database
@@ -187,11 +179,11 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("Saving video for user with email %s" % user_email)
-        self.safe_query_run(self.conn, cursor,
-                            VIDEO_INSERT_QUERY.format(videos_table_names=self.videos_table_name),
-                            (user_email, video_data.title, video_data.creation_time.isoformat(),
-                             video_data.visible, video_data.location, video_data.file_location,
-                             video_data.description))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     VIDEO_INSERT_QUERY.format(videos_table_names=self.videos_table_name),
+                                     (user_email, video_data.title, video_data.creation_time.isoformat(),
+                                      video_data.visible, video_data.location, video_data.file_location,
+                                      video_data.description))
         self.conn.commit()
         cursor.close()
 
@@ -204,9 +196,9 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("Deleting video for user with email %s" % user_email)
-        self.safe_query_run(self.conn, cursor,
-                            VIDEO_DELETE_QUERY.format(videos_table_names=self.videos_table_name),
-                            (user_email, video_title))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     VIDEO_DELETE_QUERY.format(videos_table_names=self.videos_table_name),
+                                     (user_email, video_title))
         self.conn.commit()
         cursor.close()
 
@@ -219,12 +211,12 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         self.logger.debug("Listing videos for user with email %s" % user_email)
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            LIST_USER_VIDEOS_QUERY.format(video_with_likes=
-                            VIDEO_WITH_LIKES_QUERY.format(
-                                videos_table_name=self.videos_table_name,
-                                video_reactions_table_name=self.video_reactions_table_name))
-                            % user_email)
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     LIST_USER_VIDEOS_QUERY.format(video_with_likes=
+                                     VIDEO_WITH_LIKES_QUERY.format(
+                                         videos_table_name=self.videos_table_name,
+                                         video_reactions_table_name=self.video_reactions_table_name))
+                                     % user_email)
         result = cursor.fetchall()
         # title, creation_time, visible, location, file_location, description, likes, dislikes
         result = [(VideoData(title=r[0], creation_time=r[1], visible=r[2], location=r[3],
@@ -245,14 +237,14 @@ class PostgresVideoDatabase(VideoDatabase):
         self.logger.debug("Listing top videos")
         cursor = self.conn.cursor()
 
-        self.safe_query_run(self.conn, cursor,
-                            TOP_VIDEO_QUERY.format(video_with_likes=
-                            VIDEO_WITH_LIKES_QUERY.format(
-                                videos_table_name=self.videos_table_name,
-                                video_reactions_table_name=self.video_reactions_table_name),
-                                users_table_name=self.users_table_name,
-                                videos_table_name=self.videos_table_name,
-                                video_comments_table_name=self.video_comments_table_name))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     TOP_VIDEO_QUERY.format(video_with_likes=
+                                     VIDEO_WITH_LIKES_QUERY.format(
+                                         videos_table_name=self.videos_table_name,
+                                         video_reactions_table_name=self.video_reactions_table_name),
+                                         users_table_name=self.users_table_name,
+                                         videos_table_name=self.videos_table_name,
+                                         video_comments_table_name=self.video_comments_table_name))
         result = cursor.fetchall()
         # 0:user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
 
@@ -317,7 +309,7 @@ class PostgresVideoDatabase(VideoDatabase):
         cursor = self.conn.cursor()
         query = self.build_search_query(tokenized_query, self.videos_table_name, self.users_table_name,
                                         self.video_reactions_table_name)
-        self.safe_query_run(self.conn, cursor, query)
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor, query)
         result = cursor.fetchall()
         # user_email, fullname, phone_number, photo, title, creation_time, visible, location, file_location, description, likes, dislikes
         result_videos = [VideoData(title=r[4], creation_time=r[5], visible=r[6], location=r[7],
@@ -358,9 +350,10 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("User %s reacting to video" % actor_email)
-        self.safe_query_run(self.conn, cursor,
-                            REACTION_INSERT_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
-                            (actor_email, target_email, video_title, reaction.value))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     REACTION_INSERT_QUERY.format(
+                                         video_reactions_table_name=self.video_reactions_table_name),
+                                     (actor_email, target_email, video_title, reaction.value))
         self.conn.commit()
         cursor.close()
 
@@ -375,9 +368,10 @@ class PostgresVideoDatabase(VideoDatabase):
         :return: a reaction or None
         """
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            REACTION_SEARCH_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
-                            (actor_email, target_email, video_title))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     REACTION_SEARCH_QUERY.format(
+                                         video_reactions_table_name=self.video_reactions_table_name),
+                                     (actor_email, target_email, video_title))
         reaction = cursor.fetchone()
         if not reaction:
             return None
@@ -395,9 +389,10 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("Deleting reaction for user with email %s" % actor_email)
-        self.safe_query_run(self.conn, cursor,
-                            DELETE_REACTION_QUERY.format(video_reactions_table_name=self.video_reactions_table_name),
-                            (actor_email, target_email, video_title))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     DELETE_REACTION_QUERY.format(
+                                         video_reactions_table_name=self.video_reactions_table_name),
+                                     (actor_email, target_email, video_title))
         self.conn.commit()
         cursor.close()
 
@@ -413,9 +408,10 @@ class PostgresVideoDatabase(VideoDatabase):
         """
         cursor = self.conn.cursor()
         self.logger.debug("User %s commenting video" % actor_email)
-        self.safe_query_run(self.conn, cursor,
-                            COMMENT_VIDEO_QUERY.format(video_comments_table_name=self.video_comments_table_name),
-                            (actor_email, target_email, video_title, comment, datetime.now().isoformat()))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     COMMENT_VIDEO_QUERY.format(
+                                         video_comments_table_name=self.video_comments_table_name),
+                                     (actor_email, target_email, video_title, comment, datetime.now().isoformat()))
         self.conn.commit()
         cursor.close()
 
@@ -430,11 +426,11 @@ class PostgresVideoDatabase(VideoDatabase):
         self.logger.debug("Listing comments for %s video of %s" % (target_email, video_title))
         cursor = self.conn.cursor()
 
-        self.safe_query_run(self.conn, cursor,
-                            GET_COMMENTS_QUERY.format(
-                                video_comments_table_name=self.video_comments_table_name,
-                                users_table_name=self.users_table_name),
-                            (target_email, video_title))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     GET_COMMENTS_QUERY.format(
+                                         video_comments_table_name=self.video_comments_table_name,
+                                         users_table_name=self.users_table_name),
+                                     (target_email, video_title))
         result = cursor.fetchall()
         # u.email, u.fullname, u.phone_number, u.photo, vc.comment, vc.datetime
         result_comments = [Comment(content=r[4], timestamp=r[5]) for r in result]
@@ -459,21 +455,21 @@ class PostgresVideoDatabase(VideoDatabase):
 
         cursor = self.conn.cursor()
 
-        self.safe_query_run(self.conn, cursor,
-                            COUNT_VIDEOS_QUERY.format(videos_table_name=self.videos_table_name))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     COUNT_VIDEOS_QUERY.format(videos_table_name=self.videos_table_name))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / per_page))
         if not page < pages and page != 0:
             raise NoMoreVideosError
 
-        self.safe_query_run(self.conn, cursor,
-                            GET_PAGINATED_VIDEOS_QUERY.format(
-                                video_with_likes=VIDEO_WITH_LIKES_QUERY.format(
-                                    videos_table_name=self.videos_table_name,
-                                    video_reactions_table_name=self.video_reactions_table_name),
-                                users_table_name=self.users_table_name),
-                            (per_page, page * per_page))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     GET_PAGINATED_VIDEOS_QUERY.format(
+                                         video_with_likes=VIDEO_WITH_LIKES_QUERY.format(
+                                             videos_table_name=self.videos_table_name,
+                                             video_reactions_table_name=self.video_reactions_table_name),
+                                         users_table_name=self.users_table_name),
+                                     (per_page, page * per_page))
         result = cursor.fetchall()
         self.conn.commit()
         cursor.close()

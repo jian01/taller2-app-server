@@ -153,14 +153,6 @@ class PostgresFriendDatabase(FriendDatabase):
             self.logger.error("Unable to connect to postgres database")
             raise ConnectionError("Unable to connect to postgres database")
 
-    @staticmethod
-    def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
-        try:
-            cursor.execute(query, params)
-        except Exception as err:
-            connection.rollback()
-            raise err
-
     def create_friend_request(self, from_user_email: str,
                               to_user_email: str) -> NoReturn:
         """
@@ -178,9 +170,9 @@ class PostgresFriendDatabase(FriendDatabase):
             raise UsersAlreadyFriendsError
         self.logger.debug("Sending friend request for user with email %s" % from_user_email)
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            NEW_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
-                            (from_user_email, to_user_email, datetime.now().isoformat()))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     NEW_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                                     (from_user_email, to_user_email, datetime.now().isoformat()))
         self.conn.commit()
         cursor.close()
 
@@ -198,9 +190,9 @@ class PostgresFriendDatabase(FriendDatabase):
         if from_user_email not in self.get_friend_requests(to_user_email):
             raise UnexistentFriendRequest
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            DELETE_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
-                            (from_user_email, to_user_email))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     DELETE_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                                     (from_user_email, to_user_email))
         self.conn.commit()
 
         friend_tuple = list(sorted([from_user_email, to_user_email]))
@@ -225,9 +217,9 @@ class PostgresFriendDatabase(FriendDatabase):
         if from_user_email not in self.get_friend_requests(to_user_email):
             raise UnexistentFriendRequest
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            DELETE_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
-                            (from_user_email, to_user_email))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     DELETE_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                                     (from_user_email, to_user_email))
         self.conn.commit()
         cursor.close()
 
@@ -240,8 +232,8 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Getting friend requests for %s" % user_email)
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name) % user_email)
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name) % user_email)
         result = cursor.fetchall()
         cursor.close()
         return [r[0] for r in result]
@@ -255,8 +247,8 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Getting friends for %s" % user_email)
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            ALL_FRIENDS_QUERY.format(self.friends_table_name) % (user_email, user_email))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     ALL_FRIENDS_QUERY.format(self.friends_table_name) % (user_email, user_email))
         result = cursor.fetchall()
         cursor.close()
         friend_emails = [t[0] for t in result] + [t[1] for t in result]
@@ -273,9 +265,9 @@ class PostgresFriendDatabase(FriendDatabase):
         friend_tuple = (friend_tuple[0], friend_tuple[1])
         self.logger.debug("Deleting friendship between %s and %s" % (user_email1, user_email2))
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            DELETE_FRIEND_QUERY.format(self.friends_table_name),
-                            friend_tuple)
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     DELETE_FRIEND_QUERY.format(self.friends_table_name),
+                                     friend_tuple)
         cursor.close()
         self.conn.commit()
 
@@ -290,8 +282,8 @@ class PostgresFriendDatabase(FriendDatabase):
         self.logger.debug("Checking whether %s and %s are friends" % (user_email1, user_email2))
         cursor = self.conn.cursor()
         friends_ordered = tuple(list(sorted([user_email1, user_email2])))
-        self.safe_query_run(self.conn, cursor,
-                            CHECK_FRIENDS_QUERY.format(self.friends_table_name) % friends_ordered)
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     CHECK_FRIENDS_QUERY.format(self.friends_table_name) % friends_ordered)
         result = cursor.fetchone()
         cursor.close()
         if not result:
@@ -308,9 +300,9 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("Checking whether %s sent a friend request to %s" % (from_user_email, to_user_email))
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            CHECK_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
-                            (from_user_email, to_user_email))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     CHECK_FRIEND_REQUEST_QUERY.format(self.friend_requests_table_name),
+                                     (from_user_email, to_user_email))
         result = cursor.fetchone()
         cursor.close()
         if not result:
@@ -333,9 +325,9 @@ class PostgresFriendDatabase(FriendDatabase):
             raise UsersAreNotFriendsError
         self.logger.debug("Sending user message")
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            SEND_MESSAGE_QUERY.format(self.user_messages_table_name),
-                            (from_user_email, to_user_email, message, datetime.now().isoformat()))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     SEND_MESSAGE_QUERY.format(self.user_messages_table_name),
+                                     (from_user_email, to_user_email, message, datetime.now().isoformat()))
         self.conn.commit()
         cursor.close()
 
@@ -357,21 +349,25 @@ class PostgresFriendDatabase(FriendDatabase):
 
         cursor = self.conn.cursor()
 
-        self.safe_query_run(self.conn, cursor,
-                            COUNT_ROWS_CONVERSATION_QUERY.format(user_messages_table_name=self.user_messages_table_name,
-                                                                 user_deleted_messages_table_name=self.user_deleted_messages_table_name),
-                            (requestor_email, other_user_email, requestor_email, other_user_email, requestor_email))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     COUNT_ROWS_CONVERSATION_QUERY.format(
+                                         user_messages_table_name=self.user_messages_table_name,
+                                         user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                                     (requestor_email, other_user_email, requestor_email, other_user_email,
+                                      requestor_email))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / per_page))
         if not page < pages and page != 0:
             raise NoMoreMessagesError()
 
-        self.safe_query_run(self.conn, cursor,
-                            GET_PAGINATED_CONVERSATION_QUERY.format(user_messages_table_name=self.user_messages_table_name,
-                                                                    user_deleted_messages_table_name=self.user_deleted_messages_table_name),
-                            (requestor_email, other_user_email, requestor_email, other_user_email, requestor_email,
-                             per_page, page * per_page))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     GET_PAGINATED_CONVERSATION_QUERY.format(
+                                         user_messages_table_name=self.user_messages_table_name,
+                                         user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                                     (requestor_email, other_user_email, requestor_email, other_user_email,
+                                      requestor_email,
+                                      per_page, page * per_page))
         result = cursor.fetchall()
         self.conn.commit()
         cursor.close()
@@ -389,11 +385,12 @@ class PostgresFriendDatabase(FriendDatabase):
         self.logger.debug("Geting last conversations with %s" % user_email)
 
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            GET_CONVERSATIONS_QUERY.format(user_messages_table_name=self.user_messages_table_name,
-                                                           users_table_name=self.users_table_name,
-                                                           user_deleted_messages_table_name=self.user_deleted_messages_table_name),
-                            (user_email,) * 7)
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     GET_CONVERSATIONS_QUERY.format(
+                                         user_messages_table_name=self.user_messages_table_name,
+                                         users_table_name=self.users_table_name,
+                                         user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                                     (user_email,) * 7)
         '''
         u.email, u.fullname, u.phone_number, u.photo
         messages.from_user, messages.to_user, messages.message, messages.datetime
@@ -415,9 +412,11 @@ class PostgresFriendDatabase(FriendDatabase):
         """
         self.logger.debug("%s deleting conversation with %s" % (deletor_email, deleted_email))
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            DELETE_CONVERSATION_QUERY.format(user_messages_table_name=self.user_messages_table_name,
-                                                             user_deleted_messages_table_name=self.user_deleted_messages_table_name),
-                            (deletor_email, deletor_email, deleted_email, deletor_email, deleted_email, deletor_email))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     DELETE_CONVERSATION_QUERY.format(
+                                         user_messages_table_name=self.user_messages_table_name,
+                                         user_deleted_messages_table_name=self.user_deleted_messages_table_name),
+                                     (deletor_email, deletor_email, deleted_email, deletor_email, deleted_email,
+                                      deletor_email))
         self.conn.commit()
         cursor.close()

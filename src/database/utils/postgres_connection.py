@@ -1,3 +1,4 @@
+from typing import Tuple, Optional
 import psycopg2
 
 # Perdon por esto, hotfix rapido, TODO: hacer un singleton que no de verguenza
@@ -23,4 +24,13 @@ class PostgresUtils:
             conn = psycopg2.connect(host=host, user=user,password=password,database=database)
             postgres_connections[(host, user, password, database)] = conn
             return conn
+
+    @staticmethod
+    def safe_query_run(logger, connection, cursor, query: str, params: Optional[Tuple] = None):
+        try:
+            cursor.execute(query, params)
+        except Exception as err:
+            logger.exception("Query error")
+            connection.rollback()
+            raise err
 

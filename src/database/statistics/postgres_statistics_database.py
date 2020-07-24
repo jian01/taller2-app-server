@@ -49,14 +49,6 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
             self.logger.error("Unable to connect to postgres database")
             raise ConnectionError("Unable to connect to postgres database")
 
-    @staticmethod
-    def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
-        try:
-            cursor.execute(query, params)
-        except Exception as err:
-            connection.rollback()
-            raise err
-
     def register_api_call(self, api_call: ApiCall) -> NoReturn:
         """
         Registers an api call
@@ -64,10 +56,11 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
         :param api_call: the api call to register
         """
         cursor = self.conn.cursor()
-        self.safe_query_run(self.conn, cursor,
-                            ADD_API_CALL_QUERY.format(app_server_api_calls_table=self.app_server_api_calls_table),
-                            (self.server_alias, api_call.path, api_call.status, api_call.timestamp.isoformat(),
-                             api_call.time, api_call.method))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     ADD_API_CALL_QUERY.format(
+                                         app_server_api_calls_table=self.app_server_api_calls_table),
+                                     (self.server_alias, api_call.path, api_call.status, api_call.timestamp.isoformat(),
+                                      api_call.time, api_call.method))
         self.conn.commit()
         cursor.close()
 
@@ -80,18 +73,18 @@ class PostgresStatisticsDatabase(StatisticsDatabase):
         """
         cursor = self.conn.cursor()
 
-        self.safe_query_run(self.conn, cursor,
-                            COUNT_ROWS_API_CALLS_QUERY.format(
-                                app_server_api_calls_table=self.app_server_api_calls_table),
-                            (self.server_alias, days))
+        PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                     COUNT_ROWS_API_CALLS_QUERY.format(
+                                         app_server_api_calls_table=self.app_server_api_calls_table),
+                                     (self.server_alias, days))
         result = cursor.fetchone()
 
         pages = int(math.ceil(result[0] / DEFAULT_BATCH_SIZE))
         for page in range(pages):
-            self.safe_query_run(self.conn, cursor,
-                                GET_PAGINATED_API_CALLS_QUERY.format(
-                                    app_server_api_calls_table=self.app_server_api_calls_table),
-                                (self.server_alias, days, DEFAULT_BATCH_SIZE, page * DEFAULT_BATCH_SIZE))
+            PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                         GET_PAGINATED_API_CALLS_QUERY.format(
+                                             app_server_api_calls_table=self.app_server_api_calls_table),
+                                         (self.server_alias, days, DEFAULT_BATCH_SIZE, page * DEFAULT_BATCH_SIZE))
             result = cursor.fetchall()
             # path, status, datetime, "time", method
             yield [ApiCall(path=r[0], status=r[1], timestamp=r[2],

@@ -49,14 +49,6 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
             self.logger.error("Unable to connect to postgres database")
             raise ConnectionError("Unable to connect to postgres database")
 
-    @staticmethod
-    def safe_query_run(connection, cursor, query: str, params: Optional[Tuple] = None):
-        try:
-            cursor.execute(query, params)
-        except Exception as err:
-            connection.rollback()
-            raise err
-
     def set_notification_token(self, user_email: str, token: str) -> NoReturn:
         """
         Sets the notification token for a user email
@@ -67,10 +59,10 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
         self.logger.debug("Setting notification token for %s" % user_email)
         cursor = self.conn.cursor()
         try:
-            self.safe_query_run(self.conn, cursor,
-                                NOTIFICATION_TOKEN_SAVE.format(
-                                    notification_tokens_table_name=self.notification_tokens_table_name),
-                                (token, user_email, token))
+            PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                         NOTIFICATION_TOKEN_SAVE.format(
+                                             notification_tokens_table_name=self.notification_tokens_table_name),
+                                         (token, user_email, token))
         except Exception:
             self.logger.exception("Couldn't register notification token")
             pass
@@ -89,10 +81,10 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
         self.logger.debug("Sending notification to %s" % user_email)
         cursor = self.conn.cursor()
         try:
-            self.safe_query_run(self.conn, cursor,
-                                SEARCH_NOTIFICATION_TOKEN.format(
-                                    notification_tokens_table_name=self.notification_tokens_table_name),
-                                (user_email,))
+            PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
+                                         SEARCH_NOTIFICATION_TOKEN.format(
+                                             notification_tokens_table_name=self.notification_tokens_table_name),
+                                         (user_email,))
             result = cursor.fetchone()
         except Exception:
             self.logger.exception("Couldn't send notification")
@@ -106,7 +98,7 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
             return
         try:
             r = requests.post(EXPO_SEND_NOTIFICATION_ENDPOINT,
-                              json={"to": token,"title": title,"body": body,"data": payload},
+                              json={"to": token, "title": title, "body": body, "data": payload},
                               timeout=NOTIFICATION_SEND_TIMEOUT)
             r.raise_for_status()
         except Exception:

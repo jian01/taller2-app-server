@@ -57,7 +57,7 @@ def test_set_notification_tokens(monkeypatch, notifications_postgres_database):
     notifications_postgres_database.set_notification_token('giancafferata@hotmail.com', "dummy1")
     notifications_postgres_database.set_notification_token('cafferatagian@hotmail.com', "dummy2")
     notifications_postgres_database.set_notification_token('asd@asd.com', "dummy3")
-    monkeypatch.setattr(PostgresExpoNotificationDatabase, "safe_query_run", AttributeError)
+    monkeypatch.setattr(PostgresUtils, "safe_query_run", AttributeError)
     notifications_postgres_database.set_notification_token('giancafferata@hotmail.com', "dummy5")
     cursor = notifications_postgres_database.conn.cursor()
     cursor.execute("SELECT * FROM chotuve.user_notification_tokens")
@@ -96,7 +96,7 @@ def test_send_notification_query_run_exception(monkeypatch, notifications_postgr
     calls = []
     monkeypatch.setattr(requests, "post", lambda *args, **kwargs: create_mock_response(calls, {}))
     notifications_postgres_database.set_notification_token('giancafferata@hotmail.com', "dummy1")
-    monkeypatch.setattr(PostgresExpoNotificationDatabase, "safe_query_run", AttributeError)
+    monkeypatch.setattr(PostgresUtils, "safe_query_run", AttributeError)
     notifications_postgres_database.notify('giancafferata@hotmail.com', "Hola", "Mundo", {})
     assert len(calls) == 0
 
