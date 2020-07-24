@@ -1,6 +1,6 @@
 from typing import NamedTuple, NoReturn, List, Tuple, Dict, Generator
 from abc import abstractmethod
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import random
 
 RELATIVE_SAMPLE_API_CALL_TIME = 0.1
@@ -69,32 +69,30 @@ class StatisticsDatabase:
                                                  last_days_api_calls_by_status={},
                                                  last_days_api_calls_response_times_sample=[],
                                                  last_days_api_calls_by_method={})
+        # Initialize all days at zero
+        for i in range(days + 1):
+            aux_date = today_datetime - timedelta(days=i)
+            api_call_statistics.last_days_uploaded_videos[aux_date.date()] = 0
+            api_call_statistics.last_days_user_registrations[aux_date.date()] = 0
+            api_call_statistics.last_days_users_logins[aux_date.date()] = 0
+
         for api_calls in api_call_generator:
             for api_call in api_calls:
                 days_delta = abs((today_datetime - api_call.timestamp).days)
-                if days_delta > 30:
+                if days_delta > days:
                     continue
 
                 # Video upload
                 if api_call.method == "POST" and api_call.path == "/user/video" and api_call.status == 200:
-                    if api_call.timestamp.date() not in api_call_statistics.last_days_uploaded_videos:
-                        api_call_statistics.last_days_uploaded_videos[api_call.timestamp.date()] = 1
-                    else:
-                        api_call_statistics.last_days_uploaded_videos[api_call.timestamp.date()] += 1
+                    api_call_statistics.last_days_uploaded_videos[api_call.timestamp.date()] += 1
 
                 # User registration
                 if api_call.method == "POST" and api_call.path == "/user" and api_call.status == 200:
-                    if api_call.timestamp.date() not in api_call_statistics.last_days_user_registrations:
-                        api_call_statistics.last_days_user_registrations[api_call.timestamp.date()] = 1
-                    else:
-                        api_call_statistics.last_days_user_registrations[api_call.timestamp.date()] += 1
+                    api_call_statistics.last_days_user_registrations[api_call.timestamp.date()] += 1
 
                 # User login
                 if api_call.method == "POST" and api_call.path == "/user/login" and api_call.status == 200:
-                    if api_call.timestamp.date() not in api_call_statistics.last_days_users_logins:
-                        api_call_statistics.last_days_users_logins[api_call.timestamp.date()] = 1
-                    else:
-                        api_call_statistics.last_days_users_logins[api_call.timestamp.date()] += 1
+                    api_call_statistics.last_days_users_logins[api_call.timestamp.date()] += 1
 
                 # Api call amount and mean time
                 if api_call.timestamp.date() not in api_call_statistics.last_days_api_call_amount:
