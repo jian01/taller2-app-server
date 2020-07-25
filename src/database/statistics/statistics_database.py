@@ -75,6 +75,7 @@ class StatisticsDatabase:
             api_call_statistics.last_days_uploaded_videos[aux_date.date()] = 0
             api_call_statistics.last_days_user_registrations[aux_date.date()] = 0
             api_call_statistics.last_days_users_logins[aux_date.date()] = 0
+            api_call_statistics.last_days_api_call_amount[aux_date.date()] = 0
 
         for api_calls in api_call_generator:
             for api_call in api_calls:
@@ -95,11 +96,10 @@ class StatisticsDatabase:
                     api_call_statistics.last_days_users_logins[api_call.timestamp.date()] += 1
 
                 # Api call amount and mean time
-                if api_call.timestamp.date() not in api_call_statistics.last_days_api_call_amount:
-                    api_call_statistics.last_days_api_call_amount[api_call.timestamp.date()] = 1
+                api_call_statistics.last_days_api_call_amount[api_call.timestamp.date()] += 1
+                if api_call.timestamp.date() not in api_call_statistics.last_day_mean_api_call_time:
                     api_call_statistics.last_day_mean_api_call_time[api_call.timestamp.date()] = api_call.time
                 else:
-                    api_call_statistics.last_days_api_call_amount[api_call.timestamp.date()] += 1
                     api_call_statistics.last_day_mean_api_call_time[api_call.timestamp.date()] += api_call.time
 
                 # Calls by path
