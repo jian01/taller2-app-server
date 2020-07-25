@@ -2,4 +2,4 @@ build:
   docker:
     web: Dockerfile
 run:
-  web: /bin/bash -c "envsubst '\$PORT' < /etc/nginx/sites-available/default.template > /etc/nginx/sites-available/default" && supervisord -n -c /app/supervisord.conf
+  web: /bin/bash -c "envsubst '\$PORT' < /etc/nginx/sites-available/default.template > /etc/nginx/sites-available/default" && supervisord -n -c /app/supervisord.conf && python3.6 health_check_script.py
