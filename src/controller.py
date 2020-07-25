@@ -835,3 +835,11 @@ class Controller:
                            "last_days_api_calls_by_method": api_call_statistics.last_days_api_calls_by_method
                            })
 
+    @cross_origin()
+    def app_server_statuses(self):
+        """
+        Gets app server statuses
+        :return: a json with app server statuses
+        """
+        return json.dumps(self.auth_server.get_app_servers_statuses())
+

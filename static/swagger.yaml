@@ -18,6 +18,8 @@ tags:
   description: Operations with user's comments
 - name: statistics
   description: Operations related to server statistics
+- name: app_server
+  description: App servers related
 paths:
   /user:
     get:
@@ -1025,6 +1027,16 @@ paths:
           description: Successful operation
           content: {}
       x-codegen-request-body-name: body
+  /app_servers:
+    get:
+      tags:
+        - app_server
+      summary: Queries app servers
+      description: Queries the app server statuses
+      responses:
+        200:
+          description: Successful operation
+          content: {}
 components:
   securitySchemes:
     bearerAuth:
