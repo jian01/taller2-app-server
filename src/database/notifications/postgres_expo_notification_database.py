@@ -65,7 +65,6 @@ class PostgresExpoNotificationDatabase(NotificationDatabase):
                                          (token, user_email, token))
         except Exception:
             self.logger.exception("Couldn't register notification token")
-            pass
         self.conn.commit()
         cursor.close()
 
