@@ -326,7 +326,7 @@ class Controller:
         except UnexistentVideoError:
             self.logger.debug((messages.UNEXISTENT_VIDEO_ERROR % (video_title, email_token)))
             return messages.UNEXISTENT_VIDEO_ERROR % (video_title, email_token), 404
-        self.video_database.delete_video(email_token, video_title)
+        self.video_database.delete_video(user_email, video_title)
         return messages.SUCCESS_JSON, 200
 
     @register_api_call
