@@ -995,6 +995,33 @@ paths:
       responses:
         200:
           description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  last_days_uploaded_videos:
+                    type: object
+                  last_days_user_registrations:
+                    type: object
+                  last_days_users_logins:
+                    type: object
+                  last_days_api_call_amount:
+                    type: object
+                  last_day_mean_api_call_time:
+                    type: object
+                  last_days_api_calls_by_path:
+                    type: object
+                  last_days_api_calls_by_status:
+                    type: object
+                  last_days_api_calls_by_method:
+                    type: object
+                  last_days_api_calls_response_times_sample:
+                    type: array
+                    items:
+                      type: number
+        400:
+          description: Missing fields
   /app_servers:
     get:
       tags:
@@ -1004,6 +1031,17 @@ paths:
       responses:
         200:
           description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    server_alias:
+                      type: string
+                    is_healthy:
+                      type: boolean
 components:
   securitySchemes:
     bearerAuth:
