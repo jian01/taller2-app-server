@@ -36,7 +36,7 @@ def create_application_with_controller(controller: Controller):
     app = Flask(__name__)
 
     swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, API_URL,
-                                                  config= {"app_name": "Chotuve Auth Server"})
+                                                  config= {"app_name": "Chotuve App Server"})
 
     app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
