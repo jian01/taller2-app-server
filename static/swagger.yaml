@@ -8,7 +8,7 @@ servers:
 tags:
 - name: user
   description: Operations with user
-- name: video
+- name: videos
   description: Operations with user's videos
 - name: friendship
   description: Operations over user's friendships
@@ -43,48 +43,44 @@ paths:
                 $ref: '#/components/schemas/User'
         400:
           description: Missing email
-          content: {}
         404:
           description: User not found
-          content: {}
     put:
       tags:
       - user
       summary: Update users profile
       description: Updates the data of the user
-      parameters:
-        - name: email
-          in: query
-          description: The email of the user to update
-          required: true
-          schema:
-            type: string
       requestBody:
-        description: The user data to be updated
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
         required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                fullname:
+                  type: string
+                password:
+                  type: string
+                phone_number:
+                  type: string
+                photo:
+                  type: string
+                  format: binary
       security:
         - bearerAuth: []
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
-          description: Invalid or missing fields or the message is not a json
-          content: {}
+          description: Invalid or missing fields
         401:
           description: Access token is missing or invalid
-          content: {}
         403:
           description: Not authorized
-          content: {}
         404:
           description: User not found
-          content: {}
-      x-codegen-request-body-name: body
     delete:
       tags:
         - user
@@ -102,41 +98,47 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Invalid or missing fields or the message is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         403:
           description: Not authorized
-          content: {}
         404:
           description: User not found
-          content: {}
-      x-codegen-request-body-name: body
     post:
       tags:
       - user
       summary: Create user
       description: Creates an user
       requestBody:
-        description: Created user object
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
         required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                fullname:
+                  type: string
+                password:
+                  type: string
+                phone_number:
+                  type: string
+                photo:
+                  type: string
+                  format: binary
+              required:
+                - email
+                - fullname
+                - password
+                - phone_number
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
-          description: User already created, invalid or missing fields or the message
-            is not a json
-          content: {}
-      x-codegen-request-body-name: body
+          description: User already created or invalid or missing fields
   /user/login:
     post:
       tags:
@@ -156,7 +158,9 @@ paths:
                   type: string
                 notification_token:
                   type: string
-        required: true
+              required:
+                - email
+                - password
       responses:
         200:
           description: Successful operation
@@ -171,14 +175,10 @@ paths:
                     $ref: '#/components/schemas/User'
         400:
           description: Missing fields or not a JSON
-          content: {}
         403:
           description: Invalid credentials
-          content: {}
         404:
           description: User not found
-          content: {}
-      x-codegen-request-body-name: body
   /user/recover_password:
     post:
       tags:
@@ -200,14 +200,12 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+        400:
+          description: Request is not json or email is missing
         403:
           description: Not authorized
-          content: {}
         404:
           description: User not found
-          content: {}
-      x-codegen-request-body-name: body
   /user/new_password:
     post:
       tags:
@@ -231,21 +229,16 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields, body is not a json or recovery token invalid
-          content: {}
         403:
           description: Not authorized
-          content: {}
         404:
           description: User not found
-          content: {}
-      x-codegen-request-body-name: body
   /user/video:
     post:
       tags:
-        - video
+        - videos
       summary: Upload a video
       description: Uploads a new video
       requestBody:
@@ -273,14 +266,11 @@ paths:
                     $ref: '#/components/schemas/Video'
         400:
           description: Missing fields or invalid video format
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
     delete:
       tags:
-        - video
+        - videos
       summary: Deletes a video
       description: Deletes a video
       parameters:
@@ -301,21 +291,16 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         404:
           description: Unexistent video
-          content: {}
-      x-codegen-request-body-name: body
   /user/videos:
     get:
       tags:
-        - video
+        - videos
       summary: Get users videos
       description: Get users videos
       parameters:
@@ -339,14 +324,10 @@ paths:
                     $ref: '#/components/schemas/Video'
         400:
           description: Missing email
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         403:
           description: Not authorized
-          content: {}
-      x-codegen-request-body-name: body
   /user/friend_request:
     post:
       tags:
@@ -368,17 +349,12 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields, users already friend or request is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         404:
           description: Other user not found
-          content: {}
-      x-codegen-request-body-name: body
   /user/friend_request/accept:
     post:
       tags:
@@ -400,17 +376,12 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields or request is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         404:
           description: Unexistent friend request
-          content: {}
-      x-codegen-request-body-name: body
   /user/friend_request/reject:
     post:
       tags:
@@ -432,17 +403,12 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields or request is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         404:
           description: Unexistent friend request
-          content: {}
-      x-codegen-request-body-name: body
   /user/friend_requests:
     get:
       tags:
@@ -463,8 +429,6 @@ paths:
                     $ref: '#/components/schemas/User'
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
   /user/friend:
     delete:
       tags:
@@ -483,14 +447,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing parameters
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
   /user/friends:
     get:
       tags:
@@ -518,18 +478,14 @@ paths:
                     $ref: '#/components/schemas/User'
         400:
           description: Missing email
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         403:
           description: Not authorized
-          content: {}
-      x-codegen-request-body-name: body
   /videos/top:
     get:
       tags:
-        - video
+        - videos
       summary: Get top videos
       description: Get top videos
       responses:
@@ -544,11 +500,10 @@ paths:
                     $ref: '#/components/schemas/User'
                   video:
                     $ref: '#/components/schemas/Video'
-      x-codegen-request-body-name: body
   /videos/search:
     get:
       tags:
-        - video
+        - videos
       summary: Get videos by search query
       description: Get videos by search query
       parameters:
@@ -572,11 +527,10 @@ paths:
                     $ref: '#/components/schemas/User'
                   video:
                     $ref: '#/components/schemas/Video'
-      x-codegen-request-body-name: body
   /videos/reaction:
     get:
       tags:
-        - video
+        - videos
       summary: Get my reaction to a video
       description: Get my reaction to a video
       parameters:
@@ -606,10 +560,9 @@ paths:
                     type: string
         400:
           description: Missing fields
-          content: {}
     post:
       tags:
-        - video
+        - videos
       summary: Reacts to a video
       description: Creates a new reaction to a video or updates a previous one
       security:
@@ -631,17 +584,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields, body is not a json or unexistent reaction
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
     delete:
       tags:
-        - video
+        - videos
       summary: Deletes a reaction if exists
       description: Deletes a reaction to a video
       parameters:
@@ -662,14 +611,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields or body is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
   /user/friendship_status_with:
     get:
       tags:
@@ -697,11 +642,8 @@ paths:
                     type: string
         400:
           description: Missing fields
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
   /user/message:
     post:
       tags:
@@ -725,17 +667,12 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields or body is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         403:
           description: Unauthorized, you are not friends with this user
-          content: {}
-      x-codegen-request-body-name: body
   /user/messages_with:
     get:
       tags:
@@ -788,14 +725,10 @@ paths:
                           type: string
         400:
           description: Missing fields
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         404:
           description: No more messages
-          content: {}
-      x-codegen-request-body-name: body
     delete:
       tags:
         - messages
@@ -813,14 +746,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
   /user/last_conversations:
     get:
       tags:
@@ -854,14 +783,10 @@ paths:
                           type: string
         400:
           description: Missing fields
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
         404:
           description: No more messages
-          content: {}
-      x-codegen-request-body-name: body
   /videos/comment:
     post:
       tags:
@@ -887,14 +812,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields or body is not a json
-          content: {}
         401:
           description: Access token is missing or invalid
-          content: {}
-      x-codegen-request-body-name: body
   /videos/comments:
     get:
       tags:
@@ -937,8 +858,6 @@ paths:
                           type: string
         400:
           description: Missing fields
-          content: {}
-      x-codegen-request-body-name: body
   /users:
     get:
       tags:
@@ -963,17 +882,23 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pages:
+                    type: integer
         400:
           description: Missing fields
-          content: {}
         403:
           description: Not authorized
-          content: {}
         404:
           description: Page does not exist
-          content: {}
-      x-codegen-request-body-name: body
   /videos:
     get:
       tags:
@@ -998,17 +923,12 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
         400:
           description: Missing fields
-          content: {}
         403:
           description: Not authorized
-          content: {}
         404:
           description: Page does not exist
-          content: {}
-      x-codegen-request-body-name: body
   /api_call_statistics:
     get:
       tags:
@@ -1025,8 +945,6 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
-      x-codegen-request-body-name: body
   /app_servers:
     get:
       tags:
@@ -1036,7 +954,6 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
 components:
   securitySchemes:
     bearerAuth:

@@ -255,8 +255,8 @@ class Controller:
         user_email = request.args.get('email')
         token = auth.current_user()[1]
         if not user_email:
-            self.logger.debug((messages.MISSING_FIELDS_ERROR % "user_email"))
-            return messages.ERROR_JSON % "user_email", 400
+            self.logger.debug((messages.MISSING_FIELDS_ERROR % "email"))
+            return messages.ERROR_JSON % "email", 400
         user_videos = self.video_database.list_user_videos(user_email)
         try:
             self.auth_server.user_delete(user_email, token)
