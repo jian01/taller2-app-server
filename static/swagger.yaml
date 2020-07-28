@@ -725,7 +725,7 @@ paths:
             type: string
         - name: page
           in: query
-          description: The page for the messages
+          description: The page for the messages (starting at 1)
           required: true
           schema:
             type: string
@@ -741,13 +741,11 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    pages:
-                      type: integer
-                    messages:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
                       type: object
                       properties:
                         from_user:
@@ -758,6 +756,8 @@ paths:
                           type: string
                         timestamp:
                           type: string
+                  pages:
+                    type: integer
         400:
           description: Missing fields
         401:
@@ -774,7 +774,7 @@ paths:
       parameters:
         - name: other_user_email
           in: query
-          description: The user's to get the messages
+          description: The user's email to delete the messages with him
           required: true
           schema:
             type: string
@@ -816,12 +816,8 @@ paths:
                           type: string
                         timestamp:
                           type: string
-        400:
-          description: Missing fields
         401:
           description: Access token is missing or invalid
-        404:
-          description: No more messages
   /videos/comment:
     post:
       tags:
@@ -902,7 +898,7 @@ paths:
       parameters:
         - name: page
           in: query
-          description: The page to get
+          description: The page to get (starting at 0)
           required: true
           schema:
             type: integer
@@ -943,7 +939,7 @@ paths:
       parameters:
         - name: page
           in: query
-          description: The page to get
+          description: The page to get (starting at 0)
           required: true
           schema:
             type: integer
