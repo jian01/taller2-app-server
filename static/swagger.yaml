@@ -242,16 +242,29 @@ paths:
       summary: Upload a video
       description: Uploads a new video
       requestBody:
-        description: Video data
-        content:
-          video/*:
-            schema:
-              type: string
-              format: binary
-          application/form:
-            schema:
-              $ref: '#/components/schemas/Video'
         required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                visible:
+                  type: boolean
+                location:
+                  type: string
+                video:
+                  type: string
+                  format: binary
+              required:
+                - title
+                - description
+                - visible
+                - location
+                - video
       security:
         - bearerAuth: []
       responses:
@@ -321,7 +334,13 @@ paths:
                 type: object
                 properties:
                   video:
-                    $ref: '#/components/schemas/Video'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReactionData'
         400:
           description: Missing email
         401:
@@ -497,9 +516,17 @@ paths:
                 type: object
                 properties:
                   user:
-                    $ref: '#/components/schemas/User'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
                   video:
-                    $ref: '#/components/schemas/Video'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReactionData'
   /videos/search:
     get:
       tags:
@@ -524,9 +551,19 @@ paths:
                 type: object
                 properties:
                   user:
-                    $ref: '#/components/schemas/User'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
                   video:
-                    $ref: '#/components/schemas/Video'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReactionData'
+        400:
+          description: Missing query
   /videos/reaction:
     get:
       tags:
@@ -612,7 +649,7 @@ paths:
         200:
           description: Successful operation
         400:
-          description: Missing fields or body is not a json
+          description: Missing fields
         401:
           description: Access token is missing or invalid
   /user/friendship_status_with:
@@ -923,6 +960,25 @@ paths:
       responses:
         200:
           description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  video:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReactionData'
+                  pages:
+                    type: integer
         400:
           description: Missing fields
         403:
@@ -990,3 +1046,12 @@ components:
           type: string
       xml:
         name: Video
+    ReactionData:
+      type: object
+      properties:
+        likes:
+          type: integer
+        dislikes:
+          type: integer
+      xml:
+        name: ReactionData

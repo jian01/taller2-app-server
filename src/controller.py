@@ -639,8 +639,8 @@ class Controller:
         target_email = request.args.get('target_email')
         video_title = request.args.get('video_title')
         if not target_email or not video_title:
-            self.logger.debug(messages.MISSING_FIELDS_ERROR % "other_user_email or video_title")
-            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "other_user_email or video_title", 400
+            self.logger.debug(messages.MISSING_FIELDS_ERROR % "target_email or video_title")
+            return messages.ERROR_JSON % messages.MISSING_FIELDS_ERROR % "target_email or video_title", 400
         email_token = auth.current_user()[0]
         self.video_database.delete_reaction(email_token, target_email, video_title)
         return messages.SUCCESS_JSON, 200
