@@ -442,10 +442,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  video:
-                    $ref: '#/components/schemas/User'
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         401:
           description: Access token is missing or invalid
   /user/friend:
@@ -491,10 +490,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  video:
-                    $ref: '#/components/schemas/User'
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         400:
           description: Missing email
         401:
@@ -661,9 +659,9 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: email
+        - name: other
           in: query
-          description: The user's friends to get
+          description: The user's email for getting your friendship status
           required: true
           schema:
             type: string
