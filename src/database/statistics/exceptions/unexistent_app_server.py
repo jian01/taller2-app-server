@@ -1,0 +1,2 @@
+class UnexistentAppServer(AttributeError):
+    pass

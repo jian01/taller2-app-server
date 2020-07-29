@@ -841,5 +841,11 @@ class Controller:
         Gets app server statuses
         :return: a json with app server statuses
         """
-        return json.dumps(self.auth_server.get_app_servers_statuses())
+        statuses = self.auth_server.get_app_servers_statuses()
+        for i in range(len(statuses)):
+            try:
+                statuses[i]["metrics"] = self.statistic_database.technical_metrics_from_server(statuses[i]["server_alias"])._asdict()
+            except Exception:
+                continue
+        return json.dumps(statuses)
 

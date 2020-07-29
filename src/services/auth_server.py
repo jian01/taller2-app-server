@@ -10,7 +10,7 @@ from src.services.exceptions.unauthorized_user_error import UnauthorizedUserErro
 from src.services.exceptions.no_more_pages_error import NoMorePagesError
 from src.model.photo import Photo
 from io import BytesIO
-from typing import Optional, NoReturn, Dict, Any
+from typing import Optional, NoReturn, Dict, Any, List
 from functools import lru_cache
 import base64
 import logging
@@ -251,11 +251,11 @@ class AuthServer:
         response.raise_for_status()
         return response.json()
 
-    def get_app_servers_statuses(self) -> Dict[str, Any]:
+    def get_app_servers_statuses(self) -> List[Dict[str, Any]]:
         """
         Get the app servers statuses
 
-        :return: a dictionary with data
+        :return: a list of dictionaries with data
         """
         self.logger.debug("Getting app server status")
         response = requests.get(self.auth_url + APP_SERVERS_ENDPOINT, timeout=DEFAULT_TIMEOUT)

@@ -39,6 +39,7 @@ class TestAppServerStatistics(unittest.TestCase):
         self.send_recovery_email = AuthServer.send_recovery_email
         self.recover_password = AuthServer.recover_password
         self.profile_update = AuthServer.profile_update
+        self.get_app_servers_statuses = AuthServer.get_app_servers_statuses
         self.delete_video = MediaServer.delete_video
         self.upload_video = MediaServer.upload_video
 
@@ -50,6 +51,7 @@ class TestAppServerStatistics(unittest.TestCase):
         AuthServer.send_recovery_email = self.send_recovery_email
         AuthServer.recover_password = self.recover_password
         AuthServer.profile_update = self.profile_update
+        AuthServer.get_app_servers_statuses = self.get_app_servers_statuses
         MediaServer.upload_video = self.upload_video
         MediaServer.delete_video = self.delete_video
         PostgresExpoNotificationDatabase.__init__ = self.notification_database_init
@@ -128,3 +130,34 @@ class TestAppServerStatistics(unittest.TestCase):
             self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['400'], 1)
             self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['500'], 1)
             self.assertEqual(json.loads(response.data)["last_days_api_calls_by_method"]["POST"], 4)
+
+    def test_register_and_get_statuses(self):
+        AuthServer.user_register = MagicMock(return_value=None)
+        with self.app.test_client() as c:
+            response = c.post('/user', data={"email": "giancafferata@hotmail.com", "fullname": "Gianmarco Cafferata",
+                                             "phone_number": "11 1111-1111", "password": "asd123"})
+            self.assertEqual(response.status_code, 200)
+            response = c.post('/user', data={"email": "giancafferata2@hotmail.com", "fullname": "Gianmarco Cafferata",
+                                             "phone_number": "11 1111-1111", "password": "asd123"})
+            self.assertEqual(response.status_code, 200)
+            AuthServer.user_register = MagicMock(return_value=None, side_effect=UserAlreadyRegisteredError)
+            response = c.post('/user', data={"email": "giancafferata2@hotmail.com", "fullname": "Gianmarco Cafferata",
+                                             "phone_number": "11 1111-1111", "password": "asd123"})
+            self.assertEqual(response.status_code, 400)
+            AuthServer.user_register = MagicMock(return_value=None, side_effect=AttributeError)
+            response = c.post('/user', data={"email": "giancafferata2@hotmail.com", "fullname": "Gianmarco Cafferata",
+                                             "phone_number": "11 1111-1111", "password": "asd123"})
+            self.assertEqual(response.status_code, 500)
+
+            AuthServer.get_app_servers_statuses = MagicMock(return_value=[{"server_alias": "Jenny",
+                                                                           "is_healthy": True}])
+
+            response = c.get('/app_servers')
+            self.assertEqual(response.status_code, 200)
+            app_servers = json.loads(response.data)
+            self.assertEqual(len(app_servers), 1)
+            self.assertEqual(app_servers[0]["server_alias"], "Jenny")
+            self.assertEqual(app_servers[0]["is_healthy"], True)
+            self.assertEqual(app_servers[0]["metrics"]["api_calls_last_7_days"], 4)
+            self.assertEqual(app_servers[0]["metrics"]["status_500_rate_last_7_days"], 1/4)
+            self.assertEqual(app_servers[0]["metrics"]["status_400_rate_last_7_days"], 1/4)

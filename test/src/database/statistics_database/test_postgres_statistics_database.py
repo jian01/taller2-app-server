@@ -1,5 +1,6 @@
 from src.database.statistics.postgres_statistics_database import PostgresStatisticsDatabase
-from src.database.statistics.statistics_database import ApiCall
+from src.database.statistics.statistics_database import ApiCall, TechnicalMetrics
+from src.database.statistics.exceptions.unexistent_app_server import UnexistentAppServer
 from datetime import datetime
 import pytest
 import psycopg2
@@ -65,3 +66,28 @@ def test_multiple_api_calls_save_and_load(monkeypatch, statistics_postgres_datab
     assert len(times) == 1000
     for i in range(1000):
         assert i*1.0 in times
+
+def test_simple_metrics(monkeypatch, statistics_postgres_database):
+    test_api_call = ApiCall(path="/health",status=200,timestamp=datetime.now(), time=1.0,
+                            method="GET")
+    statistics_postgres_database.register_api_call(test_api_call)
+    test_api_call = ApiCall(path="/health", status=200, timestamp=datetime.now(), time=2.0,
+                            method="GET")
+    statistics_postgres_database.register_api_call(test_api_call)
+    test_api_call = ApiCall(path="/health", status=200, timestamp=datetime.now(), time=3.0,
+                            method="GET")
+    statistics_postgres_database.register_api_call(test_api_call)
+    test_api_call = ApiCall(path="/health", status=400, timestamp=datetime.now(), time=4.0,
+                            method="GET")
+    statistics_postgres_database.register_api_call(test_api_call)
+    test_api_call = ApiCall(path="/health", status=500, timestamp=datetime.now(), time=5.0,
+                            method="GET")
+    statistics_postgres_database.register_api_call(test_api_call)
+    metrics = statistics_postgres_database.technical_metrics_from_server("test")
+    assert metrics.mean_response_time_last_7_days == 3.0
+    assert metrics.api_calls_last_7_days == 5
+    assert metrics.status_500_rate_last_7_days == 1/5
+    assert metrics.status_400_rate_last_7_days == 1/5
+
+    with pytest.raises(UnexistentAppServer):
+        statistics_postgres_database.technical_metrics_from_server("test 2")

@@ -1,5 +1,5 @@
-from src.database.statistics.statistics_database import ApiCall, StatisticsDatabase
-from typing import NoReturn, Generator, List
+from src.database.statistics.statistics_database import ApiCall, StatisticsDatabase, TechnicalMetrics
+from typing import NoReturn, Generator, List, Dict, Any
 from datetime import datetime
 
 DEFAULT_BATCH_SIZE = 100
@@ -33,3 +33,31 @@ class RamStatisticsDatabase(StatisticsDatabase):
             yield [api_call
                    for api_call in self.api_calls[i*DEFAULT_BATCH_SIZE:(i+1)*DEFAULT_BATCH_SIZE]
                    if abs((datetime.now() - api_call.timestamp).days) <= days]
+
+    def technical_metrics_from_server(self, alias: str) -> TechnicalMetrics:
+        """
+        Get technical metrics from a particular server
+
+        :raises:
+            UnexistentAppServer: if the alias is not associated with an app server
+
+        :param alias: the alias of the app server
+        :return: the technical metrics
+        """
+        status_500_count = 0
+        status_400_count = 0
+        api_call_count = 0
+        response_time_sum = 0
+        today_datetime = datetime.now()
+        for call in self.api_calls:
+            days_delta = abs((today_datetime - call.timestamp).days)
+            if days_delta > 7:
+                continue
+            status_400_count += (1 if call.status == 400 else 0)
+            status_500_count += (1 if call.status == 500 else 0)
+            api_call_count += 1
+            response_time_sum += call.time
+        return TechnicalMetrics(mean_response_time_last_7_days=response_time_sum/api_call_count,
+                                api_calls_last_7_days=api_call_count,
+                                status_500_rate_last_7_days=status_500_count/api_call_count,
+                                status_400_rate_last_7_days=status_400_count/api_call_count)

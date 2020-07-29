@@ -1,4 +1,4 @@
-from typing import NamedTuple, NoReturn, List, Tuple, Dict, Generator
+from typing import NamedTuple, NoReturn, List, Tuple, Dict, Generator, Any
 from abc import abstractmethod
 from datetime import datetime, date, timedelta
 import random
@@ -28,6 +28,14 @@ class ApiCallsStatistics(NamedTuple):
     last_days_api_calls_by_status: Dict[int, int]
     last_days_api_calls_response_times_sample: List[float]
     last_days_api_calls_by_method: Dict[str, int]
+
+
+class TechnicalMetrics(NamedTuple):
+    mean_response_time_last_7_days: float
+    api_calls_last_7_days: int
+    status_500_rate_last_7_days: float
+    status_400_rate_last_7_days: float
+
 
 class StatisticsDatabase:
     """
@@ -128,6 +136,18 @@ class StatisticsDatabase:
             api_call_statistics.last_day_mean_api_call_time[k] /= api_call_statistics.last_days_api_call_amount[k]
 
         return api_call_statistics
+
+    @abstractmethod
+    def technical_metrics_from_server(self, alias: str) -> TechnicalMetrics:
+        """
+        Get technical metrics from a particular server
+
+        :raises:
+            UnexistentAppServer: if the alias is not associated with an app server
+
+        :param alias: the alias of the app server
+        :return: the technical metrics
+        """
 
     @classmethod
     def factory(cls, name: str, *args, **kwargs) -> 'StatisticsDatabase':
