@@ -113,6 +113,11 @@ GROUP BY 2
 ON messages.other_user=last_messages.other_user AND messages.datetime=last_messages.datetime
 INNER JOIN {users_table_name} as u
 ON u.email=messages.other_user
+WHERE EXISTS (
+    SELECT user1, user2
+    FROM {friends_table_name}
+    WHERE (user1 = %s AND user2 = messages.other_user) OR (user1 = messages.other_user AND user2 = %s)
+)
 """
 
 DELETE_CONVERSATION_QUERY = """
@@ -387,10 +392,11 @@ class PostgresFriendDatabase(FriendDatabase):
         cursor = self.conn.cursor()
         PostgresUtils.safe_query_run(self.logger, self.conn, cursor,
                                      GET_CONVERSATIONS_QUERY.format(
+                                         friends_table_name=self.friends_table_name,
                                          user_messages_table_name=self.user_messages_table_name,
                                          users_table_name=self.users_table_name,
                                          user_deleted_messages_table_name=self.user_deleted_messages_table_name),
-                                     (user_email,) * 7)
+                                     (user_email,) * 9)
         '''
         u.email, u.fullname, u.phone_number, u.photo
         messages.from_user, messages.to_user, messages.message, messages.datetime

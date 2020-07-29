@@ -173,10 +173,43 @@ def test_send_messages_and_get_last_conversations(monkeypatch, friend_postgres_d
     friend_postgres_database.send_message('giancafferata@hotmail.com','asd@asd.com',
                                           "Hola")
     user_data, message_data = friend_postgres_database.get_conversations('giancafferata@hotmail.com')
+    assert len(user_data) == 2
+    assert len(message_data) == 2
     assert user_data[0]["email"] == 'asd@asd.com'
     assert user_data[1]["email"] == 'cafferatagian@hotmail.com'
     assert message_data[0].message == 'Hola'
     assert message_data[1].message == 'see'
+    user_data, message_data = friend_postgres_database.get_conversations('asd@asd.com')
+    assert len(user_data) == 1
+    assert len(message_data) == 1
+
+def test_send_messages_delete_friend_and_see_no_conversation(monkeypatch, friend_postgres_database):
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'cafferatagian@hotmail.com')
+    friend_postgres_database.create_friend_request('giancafferata@hotmail.com',
+                                                   'asd@asd.com')
+    friend_postgres_database.accept_friend_request('giancafferata@hotmail.com',
+                                                   'asd@asd.com')
+    friend_postgres_database.send_message('giancafferata@hotmail.com','cafferatagian@hotmail.com',
+                                          "Hola")
+    friend_postgres_database.send_message('giancafferata@hotmail.com', 'cafferatagian@hotmail.com',
+                                          "todo bien?")
+    friend_postgres_database.send_message('cafferatagian@hotmail.com','giancafferata@hotmail.com',
+                                          "see")
+    friend_postgres_database.send_message('giancafferata@hotmail.com','asd@asd.com',
+                                          "Hola")
+    friend_postgres_database.delete_friendship('giancafferata@hotmail.com',
+                                               'asd@asd.com')
+    user_data, message_data = friend_postgres_database.get_conversations('giancafferata@hotmail.com')
+    assert len(user_data) == 1
+    assert len(message_data) == 1
+    assert user_data[0]["email"] == 'cafferatagian@hotmail.com'
+    assert message_data[0].message == 'see'
+    user_data, message_data = friend_postgres_database.get_conversations('asd@asd.com')
+    assert len(user_data) == 0
+    assert len(message_data) == 0
 
 def test_delete_conversation(monkeypatch, friend_postgres_database):
     friend_postgres_database.create_friend_request('giancafferata@hotmail.com',

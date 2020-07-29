@@ -200,7 +200,7 @@ class RamFriendDatabase(FriendDatabase):
         last_messages_per_user = []
         for m in last_messages:
             other_user = (m.from_user if m.from_user != user_email else m.to_user)
-            if other_user in already_considered_users:
+            if other_user in already_considered_users or not self.are_friends(other_user, user_email):
                 continue
             already_considered_users.append(other_user)
             last_messages_per_user.append(m)
