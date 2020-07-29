@@ -114,12 +114,17 @@ class TestAppServerStatistics(unittest.TestCase):
             response = c.post('/user', data={"email": "giancafferata2@hotmail.com", "fullname": "Gianmarco Cafferata",
                                              "phone_number": "11 1111-1111", "password": "asd123"})
             self.assertEqual(response.status_code, 400)
+            AuthServer.user_register = MagicMock(return_value=None, side_effect=AttributeError)
+            response = c.post('/user', data={"email": "giancafferata2@hotmail.com", "fullname": "Gianmarco Cafferata",
+                                             "phone_number": "11 1111-1111", "password": "asd123"})
+            self.assertEqual(response.status_code, 500)
 
             response = c.get('/api_call_statistics', query_string={"days": 30})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(sum(json.loads(response.data)["last_days_user_registrations"].values()), 2)
-            self.assertEqual(sum(json.loads(response.data)["last_days_api_call_amount"].values()), 3)
-            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_path"]["/user"], 3)
+            self.assertEqual(sum(json.loads(response.data)["last_days_api_call_amount"].values()), 4)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_path"]["/user"], 4)
             self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['200'], 2)
             self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['400'], 1)
-            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_method"]["POST"], 3)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_status"]['500'], 1)
+            self.assertEqual(json.loads(response.data)["last_days_api_calls_by_method"]["POST"], 4)
