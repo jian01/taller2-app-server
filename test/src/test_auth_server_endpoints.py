@@ -354,3 +354,10 @@ class TestAuthServerEndpoints(unittest.TestCase):
             response = c.get('/users', query_string={"page": 1, "users_per_page":2},
                              headers={"Authorization": "Bearer %s" % "asd123"})
             self.assertEqual(response.status_code, 200)
+
+    def test_get_login(self):
+        AuthServer.get_logged_email = MagicMock(return_value="asd@asd.com")
+        with self.app.test_client() as c:
+            response = c.get('/user/login',
+                             headers={"Authorization": "Bearer %s" % "asd123"})
+            self.assertEqual(response.status_code, 200)

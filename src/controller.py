@@ -849,3 +849,15 @@ class Controller:
                 continue
         return json.dumps(statuses)
 
+    @auth.login_required
+    def login_get(self):
+        """
+        Get the user behind a login token
+
+        :return: the user behind the login token or 401
+        """
+        return json.dumps({"user_email": auth.current_user()[0]}), 200
+
+
+
+

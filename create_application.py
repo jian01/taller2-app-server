@@ -57,6 +57,8 @@ def create_application_with_controller(controller: Controller):
                      methods=["POST"])
     app.add_url_rule('/user/login', 'users_login', controller.users_login,
                      methods=["POST"])
+    app.add_url_rule('/user/login', 'login_get', controller.login_get,
+                     methods=["GET"])
     app.add_url_rule('/user', 'users_profile_query',
                      controller.users_profile_query, methods=['GET'])
     app.add_url_rule('/user', 'users_delete',

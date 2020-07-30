@@ -140,6 +140,25 @@ paths:
         400:
           description: User already created or invalid or missing fields
   /user/login:
+    get:
+      tags:
+        - user
+      summary: Get logged user
+      description: Get logged user
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_email:
+                    type: string
+        401:
+          description: Access token is missing or invalid
     post:
       tags:
       - user
