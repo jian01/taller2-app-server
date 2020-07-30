@@ -123,6 +123,7 @@ FROM {video_comments_table_name} vc
 INNER JOIN {users_table_name} as u
 ON u.email = vc.author_email
 WHERE vc.video_owner_email = %s AND vc.video_title = %s
+ORDER BY vc.datetime DESC
 """
 
 COUNT_VIDEOS_QUERY = """
