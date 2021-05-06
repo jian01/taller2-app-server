@@ -7,7 +7,7 @@ PyYAML==5.3.1
 psycopg2-binary==2.8.5
 requests==2.23.0
 flask-swagger-ui==3.25.0
-flask-cors==3.0.8
+flask-cors==3.0.9
 sendgrid==6.2.2
 pytest-postgresql==2.3.0
 Flask-HTTPAuth==4.0.0
